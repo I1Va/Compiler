@@ -16,31 +16,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Подмодули
 
-# add_subdirectory(source/FrontEnd)
-# add_subdirectory(source/MiddleEnd)
-# add_subdirectory(source/BackEnd)
-add_subdirectory(source/elf_translator)
-add_subdirectory(source/my_linker)
+add_subdirectory(libs/FrontEnd)
+# add_subdirectory(libs/MiddleEnd)
+add_subdirectory(libs/BackEnd)
+add_subdirectory(libs/elf_translator)
+add_subdirectory(libs/my_linker)
 
-# add_subdirectory(source/ASTio)
+add_subdirectory(libs/ASTio)
 
-add_subdirectory(source/string_funcs)
-add_subdirectory(source/stack)
-add_subdirectory(source/graphviz_funcs)
+add_subdirectory(libs/string_funcs)
+add_subdirectory(libs/stack)
+add_subdirectory(libs/graphviz_funcs)
 
 
 # Главная программа
 add_executable(Compiler
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    main.cpp
 )
 
 target_link_libraries(Compiler PRIVATE
-    # FrontEnd
+    FrontEnd
     # MiddleEnd
-    # BackEnd
+    BackEnd
     my_linker
     elf_translator
-    # ASTio
+    ASTio
 
     graphviz_funcs
     stack
