@@ -22,6 +22,7 @@ void stack_dump(stack_t *stk, FILE* log_output_file_ptr, const char file_name[],
      void (*stk_elem_fprintf)(FILE *stream, void *elem_ptr) = default_stk_elem_fprintf);
 void log_stk_err_print(enum log_type_t log_type, FILE *log_output_file_ptr, const stk_err err, const char file_name[], const char func_name[], const int line_idx);
 void log_var_print(enum log_type_t log_type, FILE *log_output_file_ptr, const char file_name[], const char func_name[], const int line_idx, const char fmt[], ...);
+void int_stack_output_func(FILE *stream, void *elem_ptr);
 
 #define LogErr(log_type, err) log_stk_err_print(log_type, err, __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__);
 

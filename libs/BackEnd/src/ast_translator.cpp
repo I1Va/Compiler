@@ -47,52 +47,6 @@ stack_t var_stack          = {};
 stack_t global_var_stack   = {};
 stack_t str_lit_lens_stack = {};
 
-void translate_reserved_input_call(ast_tree_elem_t *node) {
-    assert(node);
-    CHECK_NODE_TYPE(node, NODE_CALL);
-
-    char *func_name = node->left->data.value.sval;
-    if (strcmp(func_name, "input") != 0) {
-        RAISE_TR_ERROR("reserve call error: expected 'input', got '%s'", func_name);
-        return;
-    }
-
-    fprintf(asm_code_ptr,
-                          "in; call input\n"
-                        );
-}
-
-void translate_reserved_sqrt_call(ast_tree_elem_t *node) {
-    assert(node);
-    CHECK_NODE_TYPE(node, NODE_CALL);
-
-    char *func_name = node->left->data.value.sval;
-    if (strcmp(func_name, "sqrt") != 0) {
-        RAISE_TR_ERROR("reserve call error: expected 'sqrt', got '%s'", func_name);
-        return;
-    }
-
-    fprintf(asm_code_ptr,
-                          "sqrt; call sqrt\n"
-                        );
-}
-
-void translate_reserved_print_call(ast_tree_elem_t *node) {
-    assert(node);
-    CHECK_NODE_TYPE(node, NODE_CALL);
-
-    char *func_name = node->left->data.value.sval;
-    if (strcmp(func_name, "print") != 0) {
-        RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
-        return;
-    }
-
-    fprintf(asm_code_ptr, ";call print\n"
-                          "    out;\n"
-                          "    push 10;\n"
-                          "    outc;\n"
-                        );
-}
 
 void assembler_make_bin_code(const char asm_code_path[], const char bin_code_path[]) {
     assert(asm_code_path);
@@ -108,27 +62,6 @@ void assembler_make_bin_code(const char asm_code_path[], const char bin_code_pat
     }
 }
 
-void translate_reserved_print_string_call(ast_tree_elem_t *node) {
-    assert(node);
-    CHECK_NODE_TYPE(node, NODE_CALL);
-
-    int lit_len = 0;
-    char *func_name = node->left->data.value.sval;
-    if (strcmp(func_name, "print_string") != 0) {
-        RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
-        return;
-    }
-    stack_pop(&str_lit_lens_stack, &lit_len);
-    fprintf(asm_code_ptr, "; print_string call\n");
-    for (size_t i = 0; i < (size_t) lit_len; i++) {
-        fprintf(asm_code_ptr, "    outc;\n");
-    }
-    fprintf(asm_code_ptr,
-                          "    push 10;\n"
-                          "    outc;\n"
-                        );
-}
-
 void init_stacks(FILE *log_file_ptr) {
     STACK_INIT(&str_lit_lens_stack, 0, sizeof(int), log_file_ptr, NULL);
     STACK_INIT(&cond_stack, 0, sizeof(int), log_file_ptr, NULL);
@@ -136,6 +69,77 @@ void init_stacks(FILE *log_file_ptr) {
     STACK_INIT(&global_var_stack, 0, sizeof(ast_tree_elem_t *), log_file_ptr, NULL);
 }
 
+// void translate_reserved_input_call(ast_tree_elem_t *node) {
+//     assert(node);
+//     CHECK_NODE_TYPE(node, NODE_CALL);
+
+//     char *func_name = node->left->data.value.sval;
+//     if (strcmp(func_name, "input") != 0) {
+//         RAISE_TR_ERROR("reserve call error: expected 'input', got '%s'", func_name);
+//         return;
+//     }
+
+//     fprintf(asm_code_ptr,
+//                           "in; call input\n"
+//                         );
+// }
+
+// void translate_reserved_sqrt_call(ast_tree_elem_t *node) {
+//     assert(node);
+//     CHECK_NODE_TYPE(node, NODE_CALL);
+
+//     char *func_name = node->left->data.value.sval;
+//     if (strcmp(func_name, "sqrt") != 0) {
+//         RAISE_TR_ERROR("reserve call error: expected 'sqrt', got '%s'", func_name);
+//         return;
+//     }
+
+//     fprintf(asm_code_ptr,
+//                           "sqrt; call sqrt\n"
+//                         );
+// }
+
+// void translate_reserved_print_call(ast_tree_elem_t *node) {
+//     assert(node);
+//     CHECK_NODE_TYPE(node, NODE_CALL);
+
+//     char *func_name = node->left->data.value.sval;
+//     if (strcmp(func_name, "print") != 0) {
+//         RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
+//         return;
+//     }
+
+//     fprintf(asm_code_ptr, ";call print\n"
+//                           "    out;\n"
+//                           "    push 10;\n"
+//                           "    outc;\n"
+//                         );
+// }
+
+
+// void translate_reserved_print_string_call(ast_tree_elem_t *node) {
+//     assert(node);
+//     CHECK_NODE_TYPE(node, NODE_CALL);
+
+//     int lit_len = 0;
+//     char *func_name = node->left->data.value.sval;
+//     if (strcmp(func_name, "print_string") != 0) {
+//         RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
+//         return;
+//     }
+//     stack_pop(&str_lit_lens_stack, &lit_len);
+//     fprintf(asm_code_ptr, "; print_string call\n");
+//     for (size_t i = 0; i < (size_t) lit_len; i++) {
+//         fprintf(asm_code_ptr, "    outc;\n");
+//     }
+//     fprintf(asm_code_ptr,
+//                           "    push 10;\n"
+//                           "    outc;\n"
+//                         );
+// }
+
+
+// FIXME:
 void translate_ast_to_asm_code(const char path[], ast_tree_t *tree) {
     assert(path);
     assert(tree);
@@ -158,7 +162,6 @@ void translate_ast_to_asm_code(const char path[], ast_tree_t *tree) {
 }
 
 size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum node_types node_type) {
-
     assert(node);
 
     size_t count = (node->data.type == node_type);
@@ -178,13 +181,12 @@ size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum node_types
 void var_stack_remove_local_variables() {
     var_t last_elem = {};
     stack_get_elem(&var_stack, &last_elem, var_stack.size - 1);
-
     while (last_elem.deep > cur_scope_deep && var_stack.size) {
+        stack_get_elem(&var_stack, &last_elem, var_stack.size - 1);
         if (last_elem.global) {
             break; // don't remove global variables
         }
         stack_pop(&var_stack);
-        stack_get_elem(&var_stack, &last_elem, var_stack.size - 1);
     }
 }
 
@@ -270,25 +272,18 @@ void translate_func_args_init(size_t *argc, ast_tree_elem_t *node) {
 
     var_info.type    = var_init_node->left->data.type;
     var_info.name_id = var_init_node->right->data.value.ival;
-    var_info.deep    = cur_scope_deep;
+    var_info.deep    = cur_scope_deep + 1;
     var_info.name    = var_init_node->right->data.value.sval;
 
     var_info.loc_addr = add_var_into_frame(var_info);
-
-    fprintf(asm_code_ptr,
-                        "pop [rbp+%d]; // '%s' init\n"
-                        "push rsp;\n"
-                        "push 1;\n"
-                        "add;\n"
-                        "pop rsp; stack_ptr++\n",
-                        var_info.loc_addr, var_info.name);
 
 }
 
 void var_stack_restore_old_frame() {
     var_t last_elem = {};
-    stack_get_elem(&var_stack, &last_elem, var_stack.size - 1);
-    for (int i = (int) var_stack.size; i >= cur_frame_ptr; i--) {
+
+    for (int i = (int) var_stack.size; i > cur_frame_ptr; i--) {
+        stack_get_elem(&var_stack, &last_elem, var_stack.size - 1);
         if (last_elem.global) {
             break; // don't remove global variables
         }
@@ -297,7 +292,6 @@ void var_stack_restore_old_frame() {
 }
 
 void translate_function_init(ast_tree_elem_t *node) {
-
     assert(node);
     assert(node->data.type == NODE_FUNC_INIT);
 
@@ -310,29 +304,24 @@ void translate_function_init(ast_tree_elem_t *node) {
     fprintf(asm_code_ptr,
 
                          "\n;#=========Function========#\n"
-                         "jmp %s_end:;\n"
                          "%s:\n"
                          ";#=======Input=Action======#\n"
-                         "push rbp;\n"
-                         "pop rbx;\n" // save of prev rpb into register
-                         "push rsp;\n"
-                         "pop rbp;\n"
-                         ";#=======End=Action========#\n"
-                         "\n;#=========Init=Args=======#\n",
-                         func_info.name, func_info.name);
+                         "push  rbp\n"
+                         "mov   rbp, rsp;\n" // save of prev rpb into register
+                         ";#=======End=Action========#\n",
+                         func_info.name);
+
 
     node = node->right; // func_id
     CHECK_NODE_TYPE(node, NODE_FUNC_ID)
 
     if (node->left) {
-        translate_func_args_init(&argc, node->left); // write_args_initialization
+        translate_func_args_init(&argc, node->left); // write_args_initialization // FIXME:!!!!!
     }
-    fprintf(asm_code_ptr, "push rbx;\n"); // save of prev rpb into stack
 
     func_info.argc = argc;
     add_function_to_name_table(func_info);
 
-    fprintf(asm_code_ptr, ";#========End=Init=========#\n");
 
     fprintf(asm_code_ptr, "\n;#========Func=Body========#\n");
     translate_node_to_asm_code(node->right); //func_body;
@@ -676,7 +665,6 @@ void translate_func_call_args(size_t *argc, ast_tree_elem_t *node) {
     (*argc)++;
 
     if (node->left) {
-
         translate_func_args_init(argc, node->left);
     }
 
@@ -684,6 +672,7 @@ void translate_func_call_args(size_t *argc, ast_tree_elem_t *node) {
 }
 
 void dump_global_info(FILE *stream) {
+    assert(stream);
 
     fprintf_title(stream, "GLOBAL_INFO", '=', STR_F_BORDER_SZ);
     fprintf(stream,
@@ -777,12 +766,10 @@ void translate_var(ast_tree_elem_t *node) {
         return;
     }
 
-    const char *REG_PLUS = FRAME_PTR_REG_PLUS;
-    if (global_state) {REG_PLUS = "";}
 
     fprintf(asm_code_ptr,
-                         "push [%s%d]; // access to '%s'\n",
-                         REG_PLUS, found_var.loc_addr, found_var.name);
+                         "push [rbp + %d * %d]; // access to '%s'\n",
+                         found_var.loc_addr + 2, ASM_STACK_CELL_NMEMB, found_var.name);
 }
 
 void translate_return(ast_tree_elem_t *node) {

@@ -1,11 +1,13 @@
 #include "BackEnd.h"
 #include <assert.h>
+#include <cstdlib>
 #include <math.h>
 #include <stdlib.h>
 #include <stdlib.h>
 
 #include "AST_proc.h"
 #include "ast_translator.h"
+#include "general.h"
 
 
 // const size_t CHUNK_SIZE = 1024;
@@ -13,7 +15,7 @@
 // const char DOT_FILE_NAME[] = "graph.dot";
 // const char DOT_IMG_NAME[] = "gr_img.png";
 // const char ASM_CODE_PATH[] = "./asm_code.txt";
-// char bufer[BUFSIZ] = {};
+char bufer[BUFSIZ] = {};
 
 // bool BackEnd_generate_IR(ast_tree_t *ast_tree) {
 //     assert(ast_tree);
@@ -73,18 +75,35 @@
 // }
 
 
-// bool BackEnd_generate_asm_code_from_tree_file(const char asm_tree_inpath[], const char asm_code_outpath[]) {
-//     assert(asm_tree_inpath);
-//     assert(asm_code_outpath);
+bool BackEnd_generate_asm_code_from_tree_file(str_storage_t **storage, const char asm_tree_inpath[], const char asm_code_outpath[]) {
+    assert(storage);
+    assert(asm_tree_inpath);
+    assert(asm_code_outpath);
 
-//     ast_tree_t tree           = {}; ast_tree_ctor(&tree);
-//     str_storage_t *storage    = str_storage_t_ctor(CHUNK_SIZE);
-//     str_t text                = read_text_from_file(main_config.input_file);
+    ast_tree_t ast_tree = {}; ast_tree_ctor(&ast_tree);
+    str_t text          = read_text_from_file(asm_tree_inpath);
 
-//     tree.root = load_ast_tree(text.str_ptr, &storage, bufer);
+    ast_tree.root = load_ast_tree(text.str_ptr, storage, bufer);
+    if (!text.str_ptr) {
+        debug("load_ast_tree failed\n");
+        CLEAR_MEMORY(exit_mark)
+    }
 
+    if (!ast_tree.root) {
+        debug("load_ast_tree failed\n");
+        CLEAR_MEMORY(exit_mark)
 
-// }
+    }
+
+    translate_ast_to_asm_code(asm_code_outpath, &ast_tree);
+
+    free(text.str_ptr);
+    return true;
+
+    exit_mark:
+    if (text.str_ptr) free(text.str_ptr);
+    return false;
+}
 
 bool BackEnd_generate_asm_code(ast_tree_t *ast_tree, const char asm_code_outpath[]) {
     assert(ast_tree);

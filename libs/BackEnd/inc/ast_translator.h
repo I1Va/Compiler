@@ -9,6 +9,7 @@
 
 const size_t MAX_FUNC_TABLE_SZ = 128;
 const size_t ASM_BORDER_SIZE = 27;
+const int ASM_STACK_CELL_NMEMB = 8;
 
 struct var_t {
     int deep;

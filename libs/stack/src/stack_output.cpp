@@ -96,6 +96,14 @@ void default_stk_elem_fprintf(FILE * stream, void *elem) {
     fprintf(stream, "{%d}", *(int *) elem);
 }
 
+void int_stack_output_func(FILE *stream, void *elem_ptr) {
+    assert(stream);
+    assert(elem_ptr);
+
+    int elem_val = *(int *)(elem_ptr);
+    printf("{%d}", elem_val);
+}
+
 void stack_dump(stack_t *stk, FILE* log_output_file_ptr, const char file_name[], const char func_name[], const int line_idx,
      void (*stk_elem_fprintf)(FILE *stream, void *elem_ptr)) {
     print_log_border(log_output_file_ptr);

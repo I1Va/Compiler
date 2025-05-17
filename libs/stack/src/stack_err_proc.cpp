@@ -69,6 +69,8 @@ const char *stkerr_get_descr(stk_err err) {
     DESCR_(err, STK_ERR_HASH_STACK_STRUCT_MISMATCH)
     DESCR_(err, STK_ERR_STACK_LAST_ELEM)
 
+    DESCR_(err, STK_ERR_INVALID_INDEX)
+
     DESCR_(err, STK_ERR_SYSTEM)
 
     if (err == STK_ERR_OK) {
