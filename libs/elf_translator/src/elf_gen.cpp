@@ -6,9 +6,9 @@
 #include <stdarg.h>
 
 #include "elf_gen.hpp"
-#include "general.hpp"
 #include "segments_gen.hpp"
 #include "elf_header_gen.hpp"
+#include "general.h"
 
 
 void fill_executable_linked_format(elf_t *elf) {

@@ -1,5 +1,5 @@
-#ifndef STACK_GENERAL_H
-#define STACK_GENERAL_H
+#ifndef GENERAL_LIB_GENERAL_H
+#define GENERAL_LIB_GENERAL_H
 
 #include <string.h>
 
@@ -44,13 +44,13 @@ const size_t STR_F_BORDER_SZ = 100;
         free(ptr); ptr = NULL; \
     } while(0);
 
-#ifndef NDEBUG
+#ifdef _DEBUG
     #define debug(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: descr{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__);
     #define ON_DEBUG(...) __VA_ARGS__
 #else
     #define debug(str_, ...) ;
     #define ON_DEBUG(...)
-#endif // NDEBUG
+#endif // _DEBUG
 
 
-#endif // STACK_GENERAL_H
+#endif // GENERAL_LIB_GENERAL_H

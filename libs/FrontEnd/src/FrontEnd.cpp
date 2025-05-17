@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "FrontEnd.h"
+#include "AST_proc.h"
 #include "lang_lexer.h"
 #include "lang_grammar.h"
 #include "general.h"
@@ -69,10 +70,12 @@ void parsing_block_t_dtor(parsing_block_t *data) {
     }
 }
 
-bool FrontEnd_make_AST(const char high_level_code_inpath[], const char ast_tree_outpath[], const char ast_img_outpath[]) {
-    ast_tree_t tree           = {}; ast_tree_ctor(&tree);
+bool FrontEnd_make_AST(ast_tree_t *ast_tree, str_storage_t **storage, const char high_level_code_inpath[], const char ast_tree_outpath[], const char ast_img_outpath[]) {
+    assert(ast_tree);
+    assert(high_level_code_inpath);
+    assert(storage);
+
     dot_code_t dot_code       = {}; dot_code_t_ctor(&dot_code, LIST_DOT_CODE_PARS);
-    str_storage_t *storage    = str_storage_t_ctor(STR_FUNCS_FRONTEND_CHUNK_SIZE);
     str_t text                = {};
 
     lexem_t lexem_list[LEXEM_LIST_MAX_SIZE]           = {};
@@ -82,19 +85,19 @@ bool FrontEnd_make_AST(const char high_level_code_inpath[], const char ast_tree_
 
 
     text = read_text_from_file(high_level_code_inpath);
-    if (!parsing_block_t_ctor(&data, text.str_ptr, keywords_table, name_table, lexem_list, &storage)) {
+    if (!parsing_block_t_ctor(&data, text.str_ptr, keywords_table, name_table, lexem_list, storage)) {
         debug("parsing_block_t_ctor failed\n");
         CLEAR_MEMORY(exit_mark);
     }
 
     lex_scanner(&data);
 
-    tree.root = get_syntax_analysis(&data);
+    ast_tree->root = get_syntax_analysis(&data);
     if (check_parser_err(stdout, &data)) {
         CLEAR_MEMORY(exit_mark);
     }
 
-    if (convert_subtree_to_dot(tree.root, &dot_code, &storage) == -1) {
+    if (convert_subtree_to_dot(ast_tree->root, &dot_code, storage) == -1) {
         debug("convert_subtree_to_dot failed\n");
         CLEAR_MEMORY(exit_mark);
     }
@@ -104,18 +107,14 @@ bool FrontEnd_make_AST(const char high_level_code_inpath[], const char ast_tree_
         CLEAR_MEMORY(exit_mark);
     }
 
-    ast_tree_file_dump(ast_tree_outpath, &tree, AST_TREE_DUMP_INDENT);
-
+    ast_tree_file_dump(ast_tree_outpath, ast_tree, AST_TREE_DUMP_INDENT);
 
     FREE(text.str_ptr);
-    sub_tree_dtor(tree.root);
-    str_storage_t_dtor(storage);
     parsing_block_t_dtor(&data);
     return true;
 
     exit_mark:
     FREE(text.str_ptr);
-    str_storage_t_dtor(storage);
     parsing_block_t_dtor(&data);
     return false;
 }

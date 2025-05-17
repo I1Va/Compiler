@@ -4,7 +4,10 @@
 #include <string.h>
 #include "graphviz_funcs.h"
 #include "string_funcs.h"
+
 #include "AST_io.h"
+#include "AST_proc.h"
+
 
 const size_t TOKEN_LIST_MAX_SZ = 1028;
 const size_t STR_FUNCS_FRONTEND_CHUNK_SIZE = 1024;
@@ -113,6 +116,6 @@ void parsing_block_t_dtor(parsing_block_t *data);
 bool keywords_table_fill(keyword_t keywords_table[], size_t *keywords_table_size);
 bool dot_code_create_ast_img(dot_code_t *dot_code, const char ast_img_outpath[]);
 
-bool FrontEnd_make_AST(const char high_level_code_inpath[], const char ast_tree_outpath[], const char ast_img_outpath[]);
+bool FrontEnd_make_AST(ast_tree_t *ast_tree, str_storage_t **storage, const char high_level_code_inpath[], const char ast_tree_outpath[], const char ast_img_outpath[]);
 
 #endif // FRONTEND_H

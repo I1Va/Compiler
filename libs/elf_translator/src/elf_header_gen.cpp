@@ -2,8 +2,10 @@
 #include <string.h>
 
 #include "elf_header_gen.hpp"
-#include "general.hpp"
+#include "elf_gen.hpp"
+#include "general.h"
 
+const unsigned char GAP_BYTE = 0x0;
 
 void fill_field_seg_gap(unsigned char field[], const size_t left, const size_t right) {
     assert(field);

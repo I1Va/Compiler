@@ -11,8 +11,9 @@ target_include_directories(stack
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
-target_link_libraries(stack
-    PUBLIC string_funcs
+target_link_libraries(stack PUBLIC
+    string_funcs
+    general_lib
 )
 
 install(TARGETS stack

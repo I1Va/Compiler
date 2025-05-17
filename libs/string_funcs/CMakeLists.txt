@@ -9,6 +9,10 @@ target_include_directories(string_funcs
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
+target_link_libraries(string_funcs PUBLIC
+    general_lib
+)
+
 install(TARGETS string_funcs
     ARCHIVE DESTINATION lib
 )

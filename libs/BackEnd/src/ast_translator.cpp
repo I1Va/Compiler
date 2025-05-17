@@ -1,16 +1,15 @@
-#include <cstdlib>
-#include <cstring>
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
-#include "general.h"
 #include "AST_proc.h"
 #include "AST_io.h"
 #include "stack_funcs.h"
-#include "string_funcs.h"
 #include "ast_translator.h"
 #include "stack_output.h"
+#include "general.h"
 
 #define CHECK_NODE_TYPE(node, exp_type)                                            \
     if (node->data.type != exp_type) {                                             \

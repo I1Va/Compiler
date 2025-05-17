@@ -1,6 +1,8 @@
 #ifndef SEGMENTS_BUILDER_HPP
 #define SEGMENTS_BUILDER_HPP
 
+#include <string.h>
+
 // program segment fields nmemb
 #define P_TYPE_NMEMB    4
 #define P_OFFSET_NMEMB  4
@@ -30,4 +32,7 @@ const unsigned char EXEC_P_FLAG  = 0x01;
 
 void fill_text_segment_info__TEMP(segment_info_t *segment);
 void fill_data_segment_info__TEMP(segment_info_t *segment);
+void write_bytes_to_field(unsigned char field[], const size_t field_sz, ...);
+
+
 #endif // SEGMENTS_BUILDER_HPP

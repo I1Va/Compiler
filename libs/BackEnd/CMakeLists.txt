@@ -3,7 +3,7 @@ project(BackEnd LANGUAGES CXX)
 
 add_library(BackEnd STATIC
     src/ast_translator.cpp
-    src/back_args_proc.cpp
+    src/BackEnd.cpp
 )
 
 target_include_directories(BackEnd
@@ -15,6 +15,7 @@ target_link_libraries(BackEnd PUBLIC
     string_funcs
     graphviz_funcs
     stack
+    general_lib
 )
 
 install(TARGETS FrontEnd

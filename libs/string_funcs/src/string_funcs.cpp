@@ -5,8 +5,8 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 
-#include "string_funcs.h"
 #include "general.h"
+#include "string_funcs.h"
 
 str_storage_t *str_storage_t_ctor(const size_t chunk_size) {
     str_storage_t *storage = (str_storage_t *) calloc(1, sizeof(str_storage_t));

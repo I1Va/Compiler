@@ -6,3 +6,5 @@ docs/*
 
 source/my_linker/tests/*
 **/CMakeFiles/*
+
+testing_space/*

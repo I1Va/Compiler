@@ -27,6 +27,7 @@ add_subdirectory(libs/ASTio)
 add_subdirectory(libs/string_funcs)
 add_subdirectory(libs/stack)
 add_subdirectory(libs/graphviz_funcs)
+add_subdirectory(libs/general_lib)
 
 
 # Главная программа
@@ -45,6 +46,19 @@ target_link_libraries(Compiler PRIVATE
     graphviz_funcs
     stack
     string_funcs
+    general_lib
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(Compiler PRIVATE
+        -fsanitize=address
+        -fsanitize=undefined
+        -fno-omit-frame-pointer
+    )
+    target_link_options(Compiler PRIVATE
+        -fsanitize=address
+        -fsanitize=undefined
+    )
+endif()
 
 install(TARGETS Compiler DESTINATION bin)

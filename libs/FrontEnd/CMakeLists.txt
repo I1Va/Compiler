@@ -16,6 +16,7 @@ target_link_libraries(FrontEnd PUBLIC
     ASTio
     string_funcs
     graphviz_funcs
+    general_lib
 )
 
 install(TARGETS FrontEnd

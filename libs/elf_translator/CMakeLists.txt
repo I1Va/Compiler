@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(elf_translator LANGUAGES CXX)
 
-file(GLOB_RECURSE ElfTranslator_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+add_library(elf_translator STATIC
+    src/elf_gen.cpp
+    src/elf_header_gen.cpp
+    src/error_proc.cpp
+    src/segments_gen.cpp
 )
 
-add_library(elf_translator STATIC ${ElfTranslator_SOURCES})
+target_include_directories(elf_translator PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+)
 
-target_include_directories(elf_translator
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
+target_link_libraries(elf_translator PUBLIC
+    string_funcs
 )
 
 install(TARGETS elf_translator

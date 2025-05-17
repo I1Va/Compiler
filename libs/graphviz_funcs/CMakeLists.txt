@@ -10,8 +10,9 @@ target_include_directories(graphviz_funcs
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
-target_link_libraries(graphviz_funcs
-    PUBLIC string_funcs
+target_link_libraries(graphviz_funcs PUBLIC
+    string_funcs
+    general_lib
 )
 
 install(TARGETS graphviz_funcs

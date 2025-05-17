@@ -11,6 +11,10 @@ target_include_directories(my_linker
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
+target_link_libraries(my_linker PUBLIC
+    general_lib
+)
+
 install(TARGETS my_linker
     ARCHIVE DESTINATION lib
 )
