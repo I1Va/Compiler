@@ -69,74 +69,74 @@ void init_stacks(FILE *log_file_ptr) {
     STACK_INIT(&global_var_stack, 0, sizeof(ast_tree_elem_t *), log_file_ptr, NULL);
 }
 
-// void translate_reserved_input_call(ast_tree_elem_t *node) {
-//     assert(node);
-//     CHECK_NODE_TYPE(node, NODE_CALL);
+void translate_reserved_input_call(ast_tree_elem_t *node) {
+    assert(node);
+    CHECK_NODE_TYPE(node, NODE_CALL);
 
-//     char *func_name = node->left->data.value.sval;
-//     if (strcmp(func_name, "input") != 0) {
-//         RAISE_TR_ERROR("reserve call error: expected 'input', got '%s'", func_name);
-//         return;
-//     }
+    char *func_name = node->left->data.value.sval;
+    if (strcmp(func_name, "input") != 0) {
+        RAISE_TR_ERROR("reserve call error: expected 'input', got '%s'", func_name);
+        return;
+    }
 
-//     fprintf(asm_code_ptr,
-//                           "in; call input\n"
-//                         );
-// }
+    fprintf(asm_code_ptr,
+                          "in; call input\n"
+                        );
+}
 
-// void translate_reserved_sqrt_call(ast_tree_elem_t *node) {
-//     assert(node);
-//     CHECK_NODE_TYPE(node, NODE_CALL);
+void translate_reserved_sqrt_call(ast_tree_elem_t *node) {
+    assert(node);
+    CHECK_NODE_TYPE(node, NODE_CALL);
 
-//     char *func_name = node->left->data.value.sval;
-//     if (strcmp(func_name, "sqrt") != 0) {
-//         RAISE_TR_ERROR("reserve call error: expected 'sqrt', got '%s'", func_name);
-//         return;
-//     }
+    char *func_name = node->left->data.value.sval;
+    if (strcmp(func_name, "sqrt") != 0) {
+        RAISE_TR_ERROR("reserve call error: expected 'sqrt', got '%s'", func_name);
+        return;
+    }
 
-//     fprintf(asm_code_ptr,
-//                           "sqrt; call sqrt\n"
-//                         );
-// }
+    fprintf(asm_code_ptr,
+                          "sqrt; call sqrt\n"
+                        );
+}
 
-// void translate_reserved_print_call(ast_tree_elem_t *node) {
-//     assert(node);
-//     CHECK_NODE_TYPE(node, NODE_CALL);
+void translate_reserved_print_call(ast_tree_elem_t *node) {
+    assert(node);
+    CHECK_NODE_TYPE(node, NODE_CALL);
 
-//     char *func_name = node->left->data.value.sval;
-//     if (strcmp(func_name, "print") != 0) {
-//         RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
-//         return;
-//     }
+    char *func_name = node->left->data.value.sval;
+    if (strcmp(func_name, "print") != 0) {
+        RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
+        return;
+    }
 
-//     fprintf(asm_code_ptr, ";call print\n"
-//                           "    out;\n"
-//                           "    push 10;\n"
-//                           "    outc;\n"
-//                         );
-// }
+    fprintf(asm_code_ptr, ";call print\n"
+                          "    out;\n"
+                          "    push 10;\n"
+                          "    outc;\n"
+                        );
+}
 
 
-// void translate_reserved_print_string_call(ast_tree_elem_t *node) {
-//     assert(node);
-//     CHECK_NODE_TYPE(node, NODE_CALL);
+void translate_reserved_print_string_call(ast_tree_elem_t *node) {
+    assert(node);
+    CHECK_NODE_TYPE(node, NODE_CALL);
 
-//     int lit_len = 0;
-//     char *func_name = node->left->data.value.sval;
-//     if (strcmp(func_name, "print_string") != 0) {
-//         RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
-//         return;
-//     }
-//     stack_pop(&str_lit_lens_stack, &lit_len);
-//     fprintf(asm_code_ptr, "; print_string call\n");
-//     for (size_t i = 0; i < (size_t) lit_len; i++) {
-//         fprintf(asm_code_ptr, "    outc;\n");
-//     }
-//     fprintf(asm_code_ptr,
-//                           "    push 10;\n"
-//                           "    outc;\n"
-//                         );
-// }
+    int lit_len = 0;
+    char *func_name = node->left->data.value.sval;
+    if (strcmp(func_name, "print_string") != 0) {
+        RAISE_TR_ERROR("reserve call error: expected 'print', got '%s'", func_name);
+        return;
+    }
+    stack_pop(&str_lit_lens_stack, &lit_len);
+    fprintf(asm_code_ptr, "; print_string call\n");
+    for (size_t i = 0; i < (size_t) lit_len; i++) {
+        fprintf(asm_code_ptr, "    outc;\n");
+    }
+    fprintf(asm_code_ptr,
+                          "    push 10;\n"
+                          "    outc;\n"
+                        );
+}
 
 
 // FIXME:

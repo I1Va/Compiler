@@ -54,6 +54,9 @@ bool try_parse_num(lexem_t *lexem, char *str) {
     if (!sscanf(str, "%Lg%n", &val, &len)) {
         return false;
     }
+    if (strchr(str, '.') == NULL) {
+        
+    }
 
     lexem->token_type     = AST_NUM;
     lexem->token_val      = {};
