@@ -1,5 +1,5 @@
 
-#include <cstdio>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
@@ -7,8 +7,7 @@
 
 #include "AST_io.h"
 #include "general.h"
-#include "lang_logger.h"
-#include "lang_global_space.h"
+#include "FrontEnd.h"
 #include "string_funcs.h"
 #include "lang_lexer.h"
 
@@ -229,12 +228,10 @@ bool check_lextype_for_skip(const enum ast_token_t token_type) {
 }
 
 void lex_scanner(parsing_block_t *data) {
-    assert(data != NULL);
+    assert(data);
 
     size_t token_idx = 0;
     text_pos_t cur_text_pos = {};
-
-    // printf("text: '%s'\n", data->text);
 
     while (1) {
         lexem_t lexem = next_lexem(data);
@@ -252,6 +249,4 @@ void lex_scanner(parsing_block_t *data) {
     }
 
     data->lexem_list_size = token_idx;
-
-    // lexem_list_dump(stdout, data);
 }

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(FrontEnd LANGUAGES CXX)
 
 add_library(FrontEnd STATIC
-    src/lang_global_space.cpp
+    src/FrontEnd.cpp
     src/lang_grammar.cpp
     src/lang_lexer.cpp
     src/lang_logger.cpp

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "lang_global_space.h"
+#include "FrontEnd.h"
 
 #define ScannerError(p, c) {debug("ScannerError: text[%d] : '%c'", p, c); fprintf(stderr, WHT); abort();}
 

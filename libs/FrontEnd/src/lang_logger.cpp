@@ -1,6 +1,5 @@
 #include "AST_io.h"
-#include "lang_global_space.h"
-#include "lang_grammar.h"
+#include "FrontEnd.h"
 #include "lang_logger.h"
 #include "general.h"
 #include "string_funcs.h"

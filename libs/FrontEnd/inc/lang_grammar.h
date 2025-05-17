@@ -1,11 +1,8 @@
 #ifndef LANG_GRAMMAR_H
 #define LANG_GRAMMAR_H
 
-#include "lang_lexer.h"
 #include "AST_proc.h"
-#include "lang_global_space.h"
-
-#include "string_funcs.h"
+#include "FrontEnd.h"
 
 void start_parser_err(parsing_block_t *data, lexem_t lexem, enum grammar_rule_num grule);
 void add_grule_to_parser_err(parser_err_t *parser_err, enum grammar_rule_num grule);

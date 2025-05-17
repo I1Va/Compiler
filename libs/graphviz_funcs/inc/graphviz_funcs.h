@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
 const size_t DOT_CODE_LIST_MAX_SZ = BUFSIZ;
 const size_t STR_STORAGE_CHUNK_SIZE = BUFSIZ;
 const size_t MAX_DOT_DIR_SZ = 128;
@@ -71,6 +72,10 @@ void dot_start_graph(FILE *dot_code_file, dot_code_pars_t *pars);
 void dot_end_graph(FILE *dot_code_file);
 void dot_draw_image(dot_dir_t *dot_dir);
 void dot_write_edge(FILE *dot_code_file, dot_edge_t *edge);
-void dot_code_render(dot_dir_t *dot_dir, dot_code_t *dot_code);
+
+void dot_code_fwrite(dot_code_t *dot_code, FILE *dotcode_outfile);
+bool dot_draw_image(const char ast_dotcode_outpath[], const char ast_img_outpath[]);
+bool dot_code_dump_AST(dot_code_t *dot_code, const char ast_dotcode_outpath[], const char ast_img_outpath[]);
+
 
 #endif // GRAPHVIZ_FUNCS_H

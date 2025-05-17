@@ -6,6 +6,7 @@
 #include "graphviz_funcs.h"
 
 bool dot_dir_ctor(dot_dir_t *dot_dir, const char dot_dir_path[], const char dot_file_name[], const char dot_img_name[]) {
+    assert(dot_dir);
     memcpy(dot_dir->dot_dir, dot_dir_path, MAX_DOT_DIR_SZ);
     snprintf(dot_dir->dot_code_file_path, MAX_DOT_FILE_NAME_SZ, "%s/%s", dot_dir_path, dot_file_name);
     snprintf(dot_dir->dot_img_path, MAX_DOT_IMG_NAME_SZ, "%s/%s", dot_dir_path, dot_img_name);
@@ -106,16 +107,6 @@ void dot_end_graph(FILE *dot_code_file) {
     fclose(dot_code_file);
 }
 
-void dot_draw_image(dot_dir_t *dot_dir) {
-    char draw_graph_command[BUFSIZ] = {};
-    snprintf(draw_graph_command, BUFSIZ, "dot %s -Tpng -o %s",
-        dot_dir->dot_code_file_path, dot_dir->dot_img_path);
-
-    if (system(draw_graph_command) != 0) {
-        debug("system exectuion : '%s' failed", draw_graph_command);
-    }
-}
-
 void dot_write_edge(FILE *dot_code_file, dot_edge_t *edge) {
     assert(edge != NULL);
     assert(dot_code_file != NULL);
@@ -148,19 +139,51 @@ void dot_write_edge(FILE *dot_code_file, dot_edge_t *edge) {
     fprintf(dot_code_file, "]\n");
 }
 
-void dot_code_render(dot_dir_t *dot_dir, dot_code_t *dot_code) {
-    assert(dot_dir);
+void dot_code_fwrite(dot_code_t *dot_code, FILE *dotcode_outfile) {
+    assert(dotcode_outfile);
     assert(dot_code);
-    dot_start_graph(dot_dir->dot_code_file, &dot_code->pars);
 
+    dot_start_graph(dotcode_outfile, &dot_code->pars);
     for (size_t i = 0; i < dot_code->node_list_sz; i++) {
-        dot_write_node(dot_dir->dot_code_file, &(dot_code->node_list[i]));
+        dot_write_node(dotcode_outfile, &(dot_code->node_list[i]));
     }
     for (size_t i = 0; i < dot_code->edge_list_sz; i++) {
-        dot_write_edge(dot_dir->dot_code_file, &(dot_code->edge_list[i]));
+        dot_write_edge(dotcode_outfile, &(dot_code->edge_list[i]));
+    }
+    dot_end_graph(dotcode_outfile);
+}
+
+bool dot_draw_image(const char ast_dotcode_outpath[], const char ast_img_outpath[]) {
+    assert(ast_dotcode_outpath);
+    assert(ast_dotcode_outpath);
+
+    char draw_graph_command[BUFSIZ] = {};
+    snprintf(draw_graph_command, BUFSIZ, "dot %s -Tpng -o %s",
+        ast_dotcode_outpath, ast_img_outpath);
+
+    if (system(draw_graph_command) != 0) {
+        debug("system exectuion : '%s' failed", draw_graph_command);
+        return false;
+    }
+    return true;
+}
+
+bool dot_code_create_ast_img(dot_code_t *dot_code, const char ast_img_outpath[]) {
+    assert(dot_code);
+
+    const char *ast_dotcode_real_outpath = ast_img_outpath;
+    FILE * dotcode_outfile = fopen(ast_dotcode_real_outpath, "w");
+    if (!dotcode_outfile) {
+        debug("open `%s` failed\n", ast_dotcode_real_outpath);
+        return false;
     }
 
-    dot_end_graph(dot_dir->dot_code_file);
+    dot_code_fwrite(dot_code, dotcode_outfile);
 
-    dot_draw_image(dot_dir);
+    if (!dot_draw_image(ast_dotcode_real_outpath, ast_img_outpath)) {
+        debug("dot_draw_image failed\n");
+        return false;
+    }
+
+    return true;
 }

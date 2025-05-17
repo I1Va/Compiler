@@ -10,7 +10,7 @@
 #include "AST_io.h"
 #include "AST_proc.h"
 #include "general.h"
-#include "lang_global_space.h"
+#include "FrontEnd.h"
 #include "lang_logger.h"
 #include "string_funcs.h"
 #include "lang_logger.h"

@@ -1,12 +1,13 @@
-#ifndef LANG_GLOBAL_SPACE_H
-#define LANG_GLOBAL_SPACE_H
+#ifndef FRONTEND_H
+#define FRONTEND_H
 
 #include <string.h>
+#include "graphviz_funcs.h"
 #include "string_funcs.h"
 #include "AST_io.h"
 
 const size_t TOKEN_LIST_MAX_SZ = 1028;
-
+const size_t STR_FUNCS_FRONTEND_CHUNK_SIZE = 1024;
 const size_t PARSER_ERR_GRULE_LIST_SZ = 128;
 
 union token_value_t {
@@ -106,9 +107,12 @@ const lexem_t EMPTY_LEXEM = {AST_EMPTY, };
 
 bool parsing_block_t_ctor(parsing_block_t *data, char *text,
     keyword_t keywords_table[], name_t *name_table,
-    lexem_t *lexem_list, str_storage_t **storage, const char asm_code_file_path[]);
+    lexem_t *lexem_list, str_storage_t **storage);
 
 void parsing_block_t_dtor(parsing_block_t *data);
 bool keywords_table_fill(keyword_t keywords_table[], size_t *keywords_table_size);
+bool dot_code_create_ast_img(dot_code_t *dot_code, const char ast_img_outpath[]);
 
-#endif // LANG_GLOBAL_SPACE_H
+bool FrontEnd_make_AST(const char high_level_code_inpath[], const char ast_tree_outpath[], const char ast_img_outpath[]);
+
+#endif // FRONTEND_H
