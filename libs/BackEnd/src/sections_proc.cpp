@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "string_funcs.h"
 #include "translator_general.h"
 #include "FrontEnd.h"
 #include "lang_logger.h"

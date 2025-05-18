@@ -89,8 +89,7 @@ bool try_parse_string_literal(parsing_block_t *data, lexem_t *lexem, char *str) 
     lexem->token_type = TOKEN_STR_LIT;
     lexem->len = len - 2;
     lexem->token_val.string_val = get_new_str_ptr(data->storage, lexem->len);
-    strncpy(lexem->token_val.string_val, str + 1, len);
-
+    strncpy(lexem->token_val.string_val, str + 1, lexem->len);
     lexem->key_word_state = false;
 
     return true;
