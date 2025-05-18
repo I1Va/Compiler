@@ -4,22 +4,68 @@
 #include <string.h>
 #include "graphviz_funcs.h"
 #include "string_funcs.h"
-
-#include "AST_io.h"
-#include "AST_proc.h"
-
+#include "AST_structs.h"
 
 const size_t TOKEN_LIST_MAX_SZ = 1028;
 const size_t STR_FUNCS_FRONTEND_CHUNK_SIZE = 1024;
 const size_t PARSER_ERR_GRULE_LIST_SZ = 128;
 
-union token_value_t {
-    int data_type;
+enum lexer_token_t {
+    TOKEN_EOF = -1,
+    TOKEN_EMPTY = 0,
 
-    int     ival;
-    long long lval;
-    long double fval;
-    char *sval;
+    TOKEN_NUM_INT64,
+    TOKEN_NUM_DOUBLE,
+    TOKEN_STR_LIT,
+
+    TOKEN_INT64_KEYWORD,
+    TOKEN_STRING_KEYWORD,
+    TOKEN_DOUBLE_KEYWORD,
+
+
+
+    TOKEN_O_BRACE,
+    TOKEN_C_BRACE,
+    TOKEN_O_FIG_BRACE,
+    TOKEN_C_FIG_BRACE,
+
+    TOKEN_ADD,
+    TOKEN_MUL,
+    TOKEN_SUB,
+    TOKEN_DIV,
+    TOKEN_POW,
+    TOKEN_MORE,
+    TOKEN_LESS,
+    TOKEN_MORE_EQ,
+    TOKEN_LESS_EQ,
+    TOKEN_EQ,
+
+    TOKEN_EOL,
+
+    TOKEN_SPACE,
+
+
+    TOKEN_ID,
+    TOKEN_IF,
+    TOKEN_WHILE,
+    TOKEN_SEMICOLON,
+
+    TOKEN_VOID,
+    TOKEN_ASSIGN,
+    TOKEN_COMMA,
+    TOKEN_ELSE,
+
+    TOKEN_RETURN,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
+
+
+};
+
+union token_value_t {
+    int64_t     int64_val;
+    double      double_val;
+    char        *string_val;
 };
 
 struct text_pos_t {
@@ -28,7 +74,7 @@ struct text_pos_t {
 };
 
 struct lexem_t {
-    enum ast_token_t token_type;
+    enum lexer_token_t token_type;
     union token_value_t token_val;
 
     text_pos_t text_pos;
@@ -40,13 +86,13 @@ struct lexem_t {
 struct keyword_t {
     const char *name;
     size_t len;
-    ast_token_t token_type;
+    lexer_token_t token_type;
 };
 
 struct name_t {
     char *name;
     size_t len;
-    ast_token_t token_type;
+    lexer_token_t token_type;
 };
 
 enum grammar_rule_num {
@@ -108,7 +154,7 @@ struct parsing_block_t {
     FILE *asm_code_file_ptr;
 };
 
-const lexem_t EMPTY_LEXEM = {AST_EMPTY, };
+const lexem_t EMPTY_LEXEM = {TOKEN_EMPTY, };
 
 bool parsing_block_t_ctor(parsing_block_t *data, char *text,
     keyword_t keywords_table[], name_t *name_table,

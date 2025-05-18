@@ -1,12 +1,9 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <math.h>
 
-#include "AST_io.h"
-#include "general.h"
 #include "FrontEnd.h"
 #include "string_funcs.h"
 #include "lang_lexer.h"
@@ -39,7 +36,7 @@ int add_to_name_table(char *new_name, parsing_block_t *data) {
     assert(new_name);
     assert(data);
 
-    data->name_table[data->name_table_sz++] = {new_name, strlen(new_name), AST_ID};
+    data->name_table[data->name_table_sz++] = {new_name, strlen(new_name), TOKEN_ID};
     return (int) data->name_table_sz - 1;
 }
 
@@ -48,22 +45,26 @@ bool try_parse_num(lexem_t *lexem, char *str) {
     assert(str);
     if (!isdigit(*str) && *str != '-') {return false;}
 
-    long double val = 0.0;
+    double val = 0.0;
     int         len = 0;
 
-    if (!sscanf(str, "%Lg%n", &val, &len)) {
+    if (!sscanf(str, "%lg%n", &val, &len)) {
         return false;
     }
-    if (strchr(str, '.') == NULL) {
-        
-    }
 
-    lexem->token_type     = AST_NUM;
     lexem->token_val      = {};
-    lexem->token_val.fval = val;
     lexem->text_pos       = {};
     lexem->len            = (size_t) len;
     lexem->key_word_state = false;
+
+    if (strchr(str, '.') == NULL) {
+        lexem->token_type = TOKEN_NUM_INT64;
+        lexem->token_val.int64_val = (int64_t) val;
+    } else {
+        lexem->token_type = TOKEN_NUM_DOUBLE;
+        lexem->token_val.int64_val = (double) val;
+    }
+
 
     return true;
 }
@@ -78,17 +79,17 @@ bool try_parse_string_literal(parsing_block_t *data, lexem_t *lexem, char *str) 
     char *close_quote = strchr(str + 1, '"');
 
     if (!close_quote) {
-        debug("CLOSE_QUOTE ABSENT: '%*.s'", STRING_PREVIEW_CNT, str);
-        lexem->token_type = AST_EOF;
+        debug("CLOSE_QUOTE ABSENT: '%*.s'", (int) STRING_PREVIEW_CNT, str);
+        lexem->token_type = TOKEN_EOF;
         return true;
     }
 
     size_t len = (size_t) (close_quote - open_quote) + 1;
 
-    lexem->token_type = AST_STR_LIT;
+    lexem->token_type = TOKEN_STR_LIT;
     lexem->len = len - 2;
-    lexem->token_val.sval = get_new_str_ptr(data->storage, lexem->len);
-    strncpy(lexem->token_val.sval, str + 1, len);
+    lexem->token_val.string_val = get_new_str_ptr(data->storage, lexem->len);
+    strncpy(lexem->token_val.string_val, str + 1, len);
 
     lexem->key_word_state = false;
 
@@ -116,12 +117,12 @@ bool try_parse_identificator(parsing_block_t *data, lexem_t *lexem, char *str) {
             name_idx = add_to_name_table(identificator, data);
         }
         lexem->token_type = data->name_table[name_idx].token_type;
-        lexem->token_val.ival = name_idx;
+        lexem->token_val.int64_val = name_idx;
         lexem->key_word_state = false;
         lexem->len = data->name_table[name_idx].len;
     } else {
         lexem->token_type = data->keywords_table[keyword_idx].token_type;
-        lexem->token_val.ival = keyword_idx;
+        lexem->token_val.int64_val = keyword_idx;
         lexem->key_word_state = true;
         lexem->len = data->keywords_table[keyword_idx].len;
     }
@@ -137,27 +138,27 @@ bool try_parse_single_sim(lexem_t *lexem, char *str) {
             return true;                          \
         }
 
-    _STR_CHECK_SINGLE_SIM('=', '=', AST_ASSIGN);
-    _STR_CHECK_SINGLE_SIM('>', '=', AST_MORE);
-    _STR_CHECK_SINGLE_SIM('<', '=', AST_LESS);
+    _STR_CHECK_SINGLE_SIM('=', '=', TOKEN_ASSIGN);
+    _STR_CHECK_SINGLE_SIM('>', '=', TOKEN_MORE);
+    _STR_CHECK_SINGLE_SIM('<', '=', TOKEN_LESS);
 
     switch (*str) {
-        case '+':  *lexem = {AST_ADD, {}, {}, 1};         return true;
-        case '-':  *lexem = {AST_SUB, {}, {}, 1};         return true;
-        case '*':  *lexem = {AST_MUL, {}, {}, 1};         return true;
-        case '(':  *lexem = {AST_O_BRACE, {}, {}, 1};     return true;
-        case ')':  *lexem = {AST_C_BRACE, {}, {}, 1};     return true;
-        case '{':  *lexem = {AST_O_FIG_BRACE, {}, {}, 1}; return true;
-        case '}':  *lexem = {AST_C_FIG_BRACE, {}, {}, 1}; return true;
-        case '\n': *lexem = {AST_EOL, {}, {}, 1};         return true;
-        case ' ':  *lexem = {AST_SPACE, {}, {}, 1};       return true;
-        case '/':  *lexem = {AST_DIV, {}, {}, 1};         return true;
-        case '\t': *lexem = {AST_SPACE, {}, {}, 4};       return true;
-        case '^':  *lexem = {AST_POW, {}, {}, 1};         return true;
-        case EOF:  *lexem = {AST_EOF, {}, {}, 1};         return true;
-        case '\0': *lexem = {AST_EOF, {}, {}, 1};         return true;
-        case ';':  *lexem = {AST_SEMICOLON, {}, {}, 1};   return true;
-        case ',':  *lexem = {AST_COMMA, {}, {}, 1};       return true;
+        case '+':  *lexem = {TOKEN_ADD, {}, {}, 1};         return true;
+        case '-':  *lexem = {TOKEN_SUB, {}, {}, 1};         return true;
+        case '*':  *lexem = {TOKEN_MUL, {}, {}, 1};         return true;
+        case '(':  *lexem = {TOKEN_O_BRACE, {}, {}, 1};     return true;
+        case ')':  *lexem = {TOKEN_C_BRACE, {}, {}, 1};     return true;
+        case '{':  *lexem = {TOKEN_O_FIG_BRACE, {}, {}, 1}; return true;
+        case '}':  *lexem = {TOKEN_C_FIG_BRACE, {}, {}, 1}; return true;
+        case '\n': *lexem = {TOKEN_EOL, {}, {}, 1};         return true;
+        case ' ':  *lexem = {TOKEN_SPACE, {}, {}, 1};       return true;
+        case '/':  *lexem = {TOKEN_DIV, {}, {}, 1};         return true;
+        case '\t': *lexem = {TOKEN_SPACE, {}, {}, 4};       return true;
+        case '^':  *lexem = {TOKEN_POW, {}, {}, 1};         return true;
+        case EOF:  *lexem = {TOKEN_EOF, {}, {}, 1};         return true;
+        case '\0': *lexem = {TOKEN_EOF, {}, {}, 1};         return true;
+        case ';':  *lexem = {TOKEN_SEMICOLON, {}, {}, 1};   return true;
+        case ',':  *lexem = {TOKEN_COMMA, {}, {}, 1};       return true;
         default: return false;
     }
 
@@ -173,9 +174,9 @@ bool try_parse_double_sim(lexem_t *lexem, char *str) {
             return true;                        \
         }
 
-    _STR_CHECK_DOUBLE_SIM('>', '=', AST_MORE_EQ)
-    _STR_CHECK_DOUBLE_SIM('<', '=', AST_LESS_EQ)
-    _STR_CHECK_DOUBLE_SIM('=', '=', AST_EQ)
+    _STR_CHECK_DOUBLE_SIM('>', '=', TOKEN_MORE_EQ)
+    _STR_CHECK_DOUBLE_SIM('<', '=', TOKEN_LESS_EQ)
+    _STR_CHECK_DOUBLE_SIM('=', '=', TOKEN_EQ)
 
     #undef _STR_CHECK_DOUBLE_SIM
 
@@ -209,11 +210,11 @@ lexem_t next_lexem(parsing_block_t *data) {
     }
 
     debug("UNKNOWN_SYMS: %*s", STRING_PREVIEW_CNT, s);
-    return {AST_EOF};
+    return {TOKEN_EOF};
 }
 
 void text_pos_update(text_pos_t *text_pos, const lexem_t lexem) {
-    if (lexem.token_type == AST_EOL) {
+    if (lexem.token_type == TOKEN_EOL) {
         text_pos->lines++;
         text_pos->syms = 0;
         return;
@@ -222,11 +223,11 @@ void text_pos_update(text_pos_t *text_pos, const lexem_t lexem) {
     text_pos->syms += lexem.len;
 }
 
-bool check_lextype_for_skip(const enum ast_token_t token_type) {
+bool check_lextype_for_skip(const enum lexer_token_t token_type) {
     return
     (
-        token_type == AST_SPACE ||
-        token_type == AST_EOL
+        token_type == TOKEN_SPACE ||
+        token_type == TOKEN_EOL
     );
 }
 
@@ -246,7 +247,7 @@ void lex_scanner(parsing_block_t *data) {
             data->lexem_list[token_idx++] = lexem;
         }
 
-        if (lexem.token_type == AST_EOF) {
+        if (lexem.token_type == TOKEN_EOF) {
             break;
         }
     }

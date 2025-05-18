@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "AST_structs.h"
+
 // ERROR_PROCESSING \\-------------------------------------------------------------------------------->
 
 enum ast_tree_err_t {
@@ -15,7 +17,6 @@ enum ast_tree_err_t {
     BT_ERR_SYSTEM                   = 1ull << 2,
     BT_ERR_CYCLED                   = 1ull << 4,
 };
-
 
 const size_t ERR_DESCR_MAX_SIZE = 128;
 const size_t MAX_NODES_CNT = 1ull << 17;
@@ -49,39 +50,6 @@ const size_t VALID_OPERATIONS_CNT = strlen(VALID_OPERATIONS);
 const size_t MAX_NODE_WRAP_SZ = 64;
 
 const size_t AST_TREE_DUMP_INDENT = 4;
-
-struct multi_val_t {
-    int          ival;
-    long long    lval;
-    long double  fval;
-    char        *sval;
-};
-
-struct ast_tree_elem_value_t {
-    int type;
-    multi_val_t value;
-};
-
-
-struct ast_tree_elem_t {
-    ast_tree_elem_t *prev;
-    bool is_node_left_son;
-
-    ast_tree_elem_t *left;
-    ast_tree_elem_t *right;
-
-    ast_tree_elem_value_t data;
-
-    void *tree;
-    bool constant_state;
-    int graphviz_idx;
-};
-
-struct ast_tree_t {
-    ast_tree_elem_t *root;
-    FILE *log_file_ptr;
-    size_t n_nodes;
-};
 
 void ast_tree_ctor(ast_tree_t *tree);
 ast_tree_elem_t *ast_tree_create_node(ast_tree_elem_t *left, ast_tree_elem_t *right, const ast_tree_elem_value_t data);

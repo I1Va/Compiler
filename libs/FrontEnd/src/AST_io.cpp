@@ -1,13 +1,16 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "AST_proc.h"
+#include "AST_structs.h"
+#include "FrontEnd.h"
 #include "general.h"
 #include "assert.h"
 #include "string_funcs.h"
 #include "AST_io.h"
 #include "graphviz_funcs.h"
 
-#include <cstdio>
 
-#include <cstring>
 
 
 const char COLORS[][16] =
@@ -48,9 +51,9 @@ ast_tree_elem_t *load_ast_tree(char *src, str_storage_t **storage, char *bufer) 
 
     sscanf
     (
-        text, "%d %d %Ld %Lg %s %d %d",
-        &node_val.type,
-        &node_val.value.ival, &node_val.value.lval, &node_val.value.fval, bufer,
+        text, "%d %ld %lf %s %d %d",
+        &node_val.ast_node_type,
+        &node_val.value.int64_val, &node_val.value.double_val, bufer,
         &left_son_exists, &right_son_exists
     );
 
@@ -98,9 +101,9 @@ void ast_tree_file_dump_rec(FILE* stream, ast_tree_elem_t *node, size_t indent) 
 
     fprintf
     (
-        stream, "%d %d %Ld %Lf %s %d %d\n",
-        node->data.type,
-        node->data.value.ival, node->data.value.lval, node->data.value.fval, outp_sval,
+        stream, "%d %ld %f %s %d %d\n",
+        node->data.ast_node_type,
+        node->data.value.int64_val, node->data.value.double_val, outp_sval,
         node->left != NULL, node->right != NULL
     );
 
@@ -132,53 +135,45 @@ void ast_tree_file_dump(const char path[], ast_tree_t *tree, size_t indent) {
     }
 }
 
-void get_NODE_OP_string(char *bufer, ast_tree_elem_t *node) {
+void get_AST_OPERATION_string(char *bufer, ast_tree_elem_t *node) {
     assert(bufer);
-    if (node == NULL) {
-        snprintf(bufer, BUFSIZ, "NULL");
-        return;
-    }
-    if (node->data.type != NODE_OP) {
+    assert(node);
+
+    if (node->data.ast_node_type != AST_OPERATION) {
         snprintf(bufer, BUFSIZ, "IT'S NOT NODE_OP");
         return;
     }
 
-    switch (node->data.value.ival) {
-        case AST_ADD: snprintf(bufer, BUFSIZ, "+"); break;
-        case AST_DIV: snprintf(bufer, BUFSIZ, "/"); break;
-        case AST_SUB: snprintf(bufer, BUFSIZ, "-"); break;
-        case AST_MUL: snprintf(bufer, BUFSIZ, "*"); break;
-        case AST_IF: snprintf(bufer, BUFSIZ, "if"); break;
-        case AST_SEMICOLON: snprintf(bufer, BUFSIZ, ";"); break;
-        case AST_LESS: snprintf(bufer, BUFSIZ, "les"); break;
-        case AST_LESS_EQ: snprintf(bufer, BUFSIZ, "leq"); break;
-        case AST_MORE: snprintf(bufer, BUFSIZ, "more"); break;
-        case AST_MORE_EQ: snprintf(bufer, BUFSIZ, "moq"); break;
-        case AST_EQ: snprintf(bufer, BUFSIZ, "equal"); break;
-        case AST_WHILE: snprintf(bufer, BUFSIZ, "while"); break;
-        case AST_NUM: snprintf(bufer, BUFSIZ, "%Ld", node->data.value.lval); break;
-        case AST_ID: snprintf(bufer, BUFSIZ, "%s", node->data.value.sval); break;
-        case AST_COMMA: snprintf(bufer, BUFSIZ, ","); break;
-        case NODE_STR_LIT: snprintf(bufer, BUFSIZ, "\"%s\"", node->data.value.sval); break;
-        default: snprintf(bufer, BUFSIZ, "OP_?(%d)", node->data.value.ival); break;
+
+    switch (node->data.value.int64_val) {
+        case TOKEN_ADD: snprintf(bufer, BUFSIZ, "+"); return;
+        case TOKEN_DIV: snprintf(bufer, BUFSIZ, "/"); return;
+        case TOKEN_SUB: snprintf(bufer, BUFSIZ, "-"); return;
+        case TOKEN_MUL: snprintf(bufer, BUFSIZ, "*"); return;
+
+        case TOKEN_LESS_EQ: snprintf(bufer, BUFSIZ, "<="); return;
+        case TOKEN_LESS: snprintf(bufer, BUFSIZ, "<"); return;
+        case TOKEN_MORE: snprintf(bufer, BUFSIZ, ">"); return;
+        case TOKEN_MORE_EQ: snprintf(bufer, BUFSIZ, ">="); return;
+
+        default: snprintf(bufer, BUFSIZ, "OP_?(%ld)", node->data.value.int64_val); return;
     }
 }
 
-void get_NODE_TYPE_string(char *bufer, ast_tree_elem_t *node) {
+void get_AST_TYPE_string(char *bufer, ast_tree_elem_t *node) {
     assert(bufer);
-    if (node == NULL) {
-        snprintf(bufer, BUFSIZ, "NULL");
-        return;
-    }
-    if (node->data.type != NODE_TYPE) {
-        snprintf(bufer, BUFSIZ, "IT'S NOT NODE_TYPE");
+    assert(node);
+
+    if (node->data.ast_node_type != AST_TYPE) {
+        snprintf(bufer, BUFSIZ, "IT'S NOT AST_TYPE");
         return;
     }
 
-    switch (node->data.value.ival) {
-        case AST_INT: snprintf(bufer, BUFSIZ, "int"); break;
-        case AST_FLOAT: snprintf(bufer, BUFSIZ, "float"); break;
-        default: snprintf(bufer, BUFSIZ, "TYPE_?(%d)", node->data.value.ival); break;
+    switch (node->data.value.int64_val) {
+        case (TOKEN_INT64_KEYWORD): snprintf(bufer, BUFSIZ, "int64"); return;
+        case (TOKEN_DOUBLE_KEYWORD): snprintf(bufer, BUFSIZ, "double"); return;
+        case (TOKEN_STRING_KEYWORD): snprintf(bufer, BUFSIZ, "string"); return;
+        default: snprintf(bufer, BUFSIZ, "unknown type (%ld)", node->data.value.int64_val); return;
     }
 }
 
@@ -190,28 +185,29 @@ void get_node_string(char *bufer, ast_tree_elem_t *node) {
         return;
     }
 
-    switch (node->data.type) {
-        case NODE_NUM: snprintf(bufer, BUFSIZ, "%Lg", node->data.value.fval); break;
-        case NODE_VAR: snprintf(bufer, BUFSIZ, "%s", node->data.value.sval); break;
-        case NODE_OP: get_NODE_OP_string(bufer, node); break;
-        case NODE_ASSIGN: snprintf(bufer, BUFSIZ, "="); break;
-        case NODE_VAR_INIT: snprintf(bufer, BUFSIZ, "var init"); break;
-        case NODE_FUNC_INIT: snprintf(bufer, BUFSIZ, "func init"); break;
-        case NODE_TYPE: get_NODE_TYPE_string(bufer, node); break;
-        case NODE_FUNC_ID: snprintf(bufer, BUFSIZ, "func_id: '%s'", node->data.value.sval); break;
-        case NODE_CALL: snprintf(bufer, BUFSIZ, "call"); break;
-        case NODE_ELSE: snprintf(bufer, BUFSIZ, "else"); break;
-        case NODE_SCOPE: snprintf(bufer, BUFSIZ, "scope"); break;
-        case NODE_RETURN: snprintf(bufer, BUFSIZ, "return"); break;
-        case NODE_BREAK: snprintf(bufer, BUFSIZ, "break"); break;
-        case NODE_CONTINUE: snprintf(bufer, BUFSIZ, "continue"); break;
-        case NODE_WHILE: snprintf(bufer, BUFSIZ, "while"); break;
-        case NODE_SEMICOLON: snprintf(bufer, BUFSIZ, ";"); break;
-        case NODE_IF: snprintf(bufer, BUFSIZ, "if"); break;
-        case NODE_COMMA: snprintf(bufer, BUFSIZ, ","); break;
-        case NODE_STR_LIT: snprintf(bufer, BUFSIZ, "str_lit"); break;
+    switch (node->data.ast_node_type) {
+        case AST_FUNC_INIT:     snprintf(bufer, BUFSIZ, "func init"); return;
+        case AST_VAR_INIT:      snprintf(bufer, BUFSIZ, "var init"); return;
+        case AST_VAR_ID:        snprintf(bufer, BUFSIZ, "var_id: '%s'", node->data.value.sval); return;
+        case AST_FUNC_ID:       snprintf(bufer, BUFSIZ, "func_id: '%s'", node->data.value.sval); break;
+        case AST_ASSIGN:        snprintf(bufer, BUFSIZ, "="); return;
+        case AST_NUM_INT64:     snprintf(bufer, BUFSIZ, "%ld", node->data.value.int64_val); return;
+        case AST_NUM_DOUBLE:    snprintf(bufer, BUFSIZ, "%lf", node->data.value.double_val); return;
+        case AST_STR_LIT:       snprintf(bufer, BUFSIZ, "string : `%s`", node->data.value.sval); return;
+        case AST_RETURN:        snprintf(bufer, BUFSIZ, "return"); return;
+        case AST_BREAK:         snprintf(bufer, BUFSIZ, "break"); return;
+        case AST_CONTINUE:      snprintf(bufer, BUFSIZ, "continue"); return;
+        case AST_CALL:          snprintf(bufer, BUFSIZ, "call"); return;
+        case AST_ELSE:          snprintf(bufer, BUFSIZ, "else"); return;
+        case AST_SCOPE:         snprintf(bufer, BUFSIZ, "scope"); return;
+        case AST_WHILE:         snprintf(bufer, BUFSIZ, "while"); return;
+        case AST_SEMICOLON:     snprintf(bufer, BUFSIZ, ";"); return;
+        case AST_IF:            snprintf(bufer, BUFSIZ, "if"); return;
+        case AST_COMMA:         snprintf(bufer, BUFSIZ, ","); return;
+        case AST_TYPE:          get_AST_TYPE_string(bufer, node); return;
+        case AST_OPERATION:     get_AST_OPERATION_string(bufer, node); return;
 
-        default: snprintf(bufer, BUFSIZ, "UNKNOWN_NODE_TYPE(%d)", node->data.type);
+        default: snprintf(bufer, BUFSIZ, "UNKNOWN_NODE_TYPE(%d)", node->data.ast_node_type);
     }
 }
 
@@ -247,7 +243,7 @@ int put_node_in_dotcode(ast_tree_elem_t *node, dot_code_t *dot_code, str_storage
     int node_idx = dot_new_node(dot_code, DEFAULT_NODE_PARS, label);
     // printf("label : [%s], node_idx: {%d}\n", label, node_idx);
 
-    dot_code->node_list[node_idx].pars.fillcolor = COLORS[node->data.type % COLORS_CNT];
+    dot_code->node_list[node_idx].pars.fillcolor = COLORS[node->data.ast_node_type % COLORS_CNT];
 
     return node_idx;
 }

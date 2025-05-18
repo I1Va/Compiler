@@ -22,8 +22,6 @@ add_subdirectory(libs/BackEnd)
 add_subdirectory(libs/elf_translator)
 add_subdirectory(libs/my_linker)
 
-add_subdirectory(libs/ASTio)
-
 add_subdirectory(libs/string_funcs)
 add_subdirectory(libs/stack)
 add_subdirectory(libs/graphviz_funcs)
@@ -41,7 +39,6 @@ target_link_libraries(Compiler PRIVATE
     BackEnd
     my_linker
     elf_translator
-    ASTio
 
     graphviz_funcs
     stack

@@ -3,6 +3,7 @@
 
 #include "FrontEnd.h"
 #include "AST_proc.h"
+#include "AST_io.h"
 #include "lang_lexer.h"
 #include "lang_grammar.h"
 #include "general.h"
@@ -11,14 +12,15 @@
 bool keywords_table_fill(keyword_t keywords_table[], size_t *keywords_table_size) {
     keyword_t temp_table[] =
     {
-        {"EMPTY_NAME", 10, AST_EMPTY},
-        {"if", 2, AST_IF},
-        {"while", 5, AST_WHILE},
-        {"int", 3, AST_INT},
-        {"float", 5, AST_FLOAT},
-        {"return", 6, AST_RETURN},
-        {"else", 4, AST_ELSE},
-        {"void", 4, AST_VOID},
+        {"EMPTY_NAME", 10, TOKEN_EMPTY},
+        {"if", 2, TOKEN_IF},
+        {"while", 5, TOKEN_WHILE},
+        {"int64", 5, TOKEN_INT64_KEYWORD},
+        {"double", 6, TOKEN_DOUBLE_KEYWORD},
+        {"string", 6, TOKEN_STRING_KEYWORD},
+        {"return", 6, TOKEN_RETURN},
+        {"else", 4, TOKEN_ELSE},
+        {"void", 4, TOKEN_VOID},
     };
 
     *keywords_table_size = sizeof(temp_table) / sizeof(keyword_t);

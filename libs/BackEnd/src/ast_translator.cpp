@@ -4,13 +4,14 @@
 
 #include "AST_proc.h"
 #include "ast_translator.h"
+#include "AST_structs.h"
 #include "stack_frame_proc.h"
 #include "AST_io.h"
 #include "stack_funcs.h"
 
-#define CHECK_NODE_TYPE(node, exp_type)                                            \
-    if (node->data.type != exp_type) {                                             \
-        RAISE_TR_ERROR("invalid_node: {%d}, expected: "#exp_type, node->data.type) \
+#define CHECK_NODE_TYPE(node, exp_type)                                                     \
+    if (node->data.ast_node_type != exp_type) {                                                  \
+        RAISE_TR_ERROR("invalid_node: {%d}, expected: "#exp_type, node->data.ast_node_type) \
     }
 
 #define RAISE_TR_ERROR(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: translator_error{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); abort();
@@ -58,8 +59,8 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
     assert(gl_space);
     assert(asm_payload);
 
-    switch (node->data.type) {
-        case NODE_SEMICOLON: translate_semicolon(node, gl_space, asm_payload);
+    switch (node->data.ast_node_type) {
+        case AST_SEMICOLON: translate_semicolon(node, gl_space, asm_payload);
             break;
         // case NODE_VAR_INIT: translate_var_init(node);
         //     break;
@@ -117,7 +118,7 @@ void translate_semicolon(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
     assert(node);
     assert(gl_space);
     assert(asm_payload);
-    CHECK_NODE_TYPE(node, NODE_SEMICOLON);
+    CHECK_NODE_TYPE(node, AST_SEMICOLON);
 
     if (node->left) {
         translate_node_to_asm_code(node->left, gl_space, asm_payload);

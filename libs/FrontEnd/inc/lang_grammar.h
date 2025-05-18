@@ -39,10 +39,10 @@ ast_tree_elem_t *get_cont_ret_break(parsing_block_t *data);
 ast_tree_elem_t *get_statement_list_untill_eof(parsing_block_t *data, int *empty);
 ast_tree_elem_t *get_string_literal(parsing_block_t *data);
 
-bool check_token_on_primary_expr_class(const ast_token_t token);
-bool check_token_on_logical_class(const ast_token_t token);
-bool check_token_on_additive_class(const ast_token_t token);
-bool check_token_on_multiplicative_class(const ast_token_t token);
-bool check_token_on_type_class(const ast_token_t token);
+bool check_token_on_primary_expr_class(const lexer_token_t token);
+bool check_token_on_logical_class(const lexer_token_t token);
+bool check_token_on_additive_class(const lexer_token_t token);
+bool check_token_on_multiplicative_class(const lexer_token_t token);
+bool check_token_on_type_class(const lexer_token_t token);
 
 #endif // LANG_GRAMMAR_H

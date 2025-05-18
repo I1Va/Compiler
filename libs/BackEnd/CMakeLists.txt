@@ -12,7 +12,7 @@ target_include_directories(BackEnd
 )
 
 target_link_libraries(BackEnd PUBLIC
-    ASTio
+    FrontEnd
     string_funcs
     graphviz_funcs
     stack
