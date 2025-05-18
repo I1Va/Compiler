@@ -4,6 +4,7 @@ project(BackEnd LANGUAGES CXX)
 add_library(BackEnd STATIC
     src/ast_translator.cpp
     src/BackEnd.cpp
+    src/stack_frame_proc.cpp
 )
 
 target_include_directories(BackEnd

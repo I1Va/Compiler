@@ -14,7 +14,9 @@ const size_t STR_FUNCS_FRONTEND_CHUNK_SIZE = 1024;
 const size_t PARSER_ERR_GRULE_LIST_SZ = 128;
 
 union token_value_t {
-    int ival;
+    int data_type;
+
+    int     ival;
     long long lval;
     long double fval;
     char *sval;

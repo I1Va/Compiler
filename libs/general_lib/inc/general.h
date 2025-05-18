@@ -1,8 +1,9 @@
 #ifndef GENERAL_LIB_GENERAL_H
 #define GENERAL_LIB_GENERAL_H
 
-#include <string.h>
+
 #include <stdio.h>
+#include <string.h>
 
 const size_t date_nmemb = 16;
 const size_t time_nmemb = 16;
