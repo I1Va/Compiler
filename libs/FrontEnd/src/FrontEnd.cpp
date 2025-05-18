@@ -15,7 +15,7 @@ bool keywords_table_fill(keyword_t keywords_table[], size_t *keywords_table_size
         {"EMPTY_NAME", 10, TOKEN_EMPTY},
         {"if", 2, TOKEN_IF},
         {"while", 5, TOKEN_WHILE},
-        {"int64", 5, TOKEN_INT64_KEYWORD},
+        {"int", 3, TOKEN_INT64_KEYWORD},
         {"double", 6, TOKEN_DOUBLE_KEYWORD},
         {"string", 6, TOKEN_STRING_KEYWORD},
         {"return", 6, TOKEN_RETURN},

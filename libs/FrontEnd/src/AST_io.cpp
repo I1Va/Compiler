@@ -151,10 +151,10 @@ void get_AST_OPERATION_string(char *bufer, ast_tree_elem_t *node) {
         case TOKEN_SUB: snprintf(bufer, BUFSIZ, "-"); return;
         case TOKEN_MUL: snprintf(bufer, BUFSIZ, "*"); return;
 
-        case TOKEN_LESS_EQ: snprintf(bufer, BUFSIZ, "<="); return;
-        case TOKEN_LESS: snprintf(bufer, BUFSIZ, "<"); return;
-        case TOKEN_MORE: snprintf(bufer, BUFSIZ, ">"); return;
-        case TOKEN_MORE_EQ: snprintf(bufer, BUFSIZ, ">="); return;
+        case TOKEN_LESS_EQ: snprintf(bufer, BUFSIZ, "lesseq"); return;
+        case TOKEN_LESS: snprintf(bufer, BUFSIZ, "less"); return;
+        case TOKEN_MORE: snprintf(bufer, BUFSIZ, "more"); return;
+        case TOKEN_MORE_EQ: snprintf(bufer, BUFSIZ, "moreq"); return;
 
         default: snprintf(bufer, BUFSIZ, "OP_?(%ld)", node->data.value.int64_val); return;
     }
@@ -173,6 +173,7 @@ void get_AST_TYPE_string(char *bufer, ast_tree_elem_t *node) {
         case (TOKEN_INT64_KEYWORD): snprintf(bufer, BUFSIZ, "int64"); return;
         case (TOKEN_DOUBLE_KEYWORD): snprintf(bufer, BUFSIZ, "double"); return;
         case (TOKEN_STRING_KEYWORD): snprintf(bufer, BUFSIZ, "string"); return;
+         case (TOKEN_VOID): snprintf(bufer, BUFSIZ, "void"); return;
         default: snprintf(bufer, BUFSIZ, "unknown type (%ld)", node->data.value.int64_val); return;
     }
 }
@@ -193,7 +194,7 @@ void get_node_string(char *bufer, ast_tree_elem_t *node) {
         case AST_ASSIGN:        snprintf(bufer, BUFSIZ, "="); return;
         case AST_NUM_INT64:     snprintf(bufer, BUFSIZ, "%ld", node->data.value.int64_val); return;
         case AST_NUM_DOUBLE:    snprintf(bufer, BUFSIZ, "%lf", node->data.value.double_val); return;
-        case AST_STR_LIT:       snprintf(bufer, BUFSIZ, "string : `%s`", node->data.value.sval); return;
+        case AST_STR_LIT:       snprintf(bufer, BUFSIZ, "`string_value`"); return;
         case AST_RETURN:        snprintf(bufer, BUFSIZ, "return"); return;
         case AST_BREAK:         snprintf(bufer, BUFSIZ, "break"); return;
         case AST_CONTINUE:      snprintf(bufer, BUFSIZ, "continue"); return;

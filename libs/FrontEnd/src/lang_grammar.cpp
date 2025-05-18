@@ -508,10 +508,11 @@ ast_tree_elem_t *get_type(parsing_block_t *data) {
     ast_tree_elem_t *type_node = NULL;
     lexer_token_t token = tl[*tp].token_type;
 
-    if (!check_token_on_type_class(token)) {
+    if (!(check_token_on_type_class(token) || token == TOKEN_VOID)) {
         start_parser_err(data, tl[*tp], GET_TYPE);
         return NULL;
     }
+
     (*tp)++;
 
     type_node = _TYPE(token);
@@ -937,6 +938,7 @@ ast_tree_elem_t *get_func_identificator(parsing_block_t *data) {
 
     int func_name_id = tl[*tp].token_val.int64_val;
     char *func_name = data->name_table[tl[*tp].token_val.int64_val].name;
+
     (*tp)++;
 
     return _FUNC_ID(func_name, func_name_id);
