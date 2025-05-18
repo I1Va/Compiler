@@ -52,6 +52,7 @@ bool try_parse_num(lexem_t *lexem, char *str) {
         return false;
     }
 
+
     lexem->token_val      = {};
     lexem->text_pos       = {};
     lexem->len            = (size_t) len;
@@ -62,9 +63,8 @@ bool try_parse_num(lexem_t *lexem, char *str) {
         lexem->token_val.int64_val = (int64_t) val;
     } else {
         lexem->token_type = TOKEN_NUM_DOUBLE;
-        lexem->token_val.int64_val = (double) val;
+        lexem->token_val.double_val = (double) val;
     }
-
 
     return true;
 }
@@ -184,6 +184,8 @@ bool try_parse_double_sim(lexem_t *lexem, char *str) {
 }
 
 lexem_t next_lexem(parsing_block_t *data) {
+    assert(data);
+
     char   *s        = data->text;
     size_t *p        = &data->text_idx;
     lexem_t lexem                  = {};

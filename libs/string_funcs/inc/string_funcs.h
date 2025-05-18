@@ -39,12 +39,13 @@ void fprintf_title(FILE *stream, const char tittle[], const char bord_char, cons
 
 void fprintf_bin(FILE *stream, int mask);
 void get_bit_str(int mask, char res_str[], const size_t n_bits);
-#define debug(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: descr{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__);
+
+void generate_random_string(char bufer[], const size_t str_sz);
 
 #define MESSAGE_PRINT(str_, ...)                            \
 {                                                           \
     fprintf_title(stdout, "MESSAGE", '=', STR_F_BORDER_SZ); \
-    fprintf(str_, ...)                                      \
+    fprintf(stdout, str_, ##__VA_ARGS__);                   \
     fprintf_border(stdout, '=', STR_F_BORDER_SZ, true);     \
 }                                                           \
 

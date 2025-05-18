@@ -38,8 +38,8 @@ enum ast_node_types {
 };
 
 struct multi_val_t {
-    int64_t      int64_val;
-    double  double_val;
+    int64_t     int64_val;
+    double      double_val;
     char        *sval;
 };
 

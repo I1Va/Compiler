@@ -24,13 +24,20 @@ str_storage_t *str_storage_t_ctor(const size_t chunk_size) {
     return storage;
 }
 
+void generate_random_string(char bufer[], const size_t str_sz) {
+    for (size_t i = 0; i < str_sz; i++) {
+        bufer[i] = 'a' + rand() % ENGLISH_ALPHABET_SZ;
+    }
+    bufer[str_sz] = '\0';
+}
+
 size_t get_max_str_len(size_t n, ...) {
     size_t max_str_len = 0;
     va_list factor;
     va_start(factor, n);
 
     for(size_t i = 0; i < n; i++) {
-        char *str_ptr = va_arg(factor, char *); // FIXME: почему, при strlen(va_arg(factor, char *)) возникает SEGV?
+        char *str_ptr = va_arg(factor, char *); // FIXME: почему, при strlen(va_arg(factor, char *)) возникает SEGF?
         max_str_len = MAX(max_str_len, strlen(str_ptr));
     }
 

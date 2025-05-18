@@ -5,6 +5,49 @@
 #include "string_funcs.h"
 
 #include <assert.h>
+#include <cstdio>
+
+void token_write(char bufer[], const size_t buf_sz, const lexer_token_t token_type) {
+    assert(bufer);
+
+    #define T_DESCR_(stream, lex) case lex: snprintf(bufer, buf_sz, #lex); break;
+    switch (token_type) {
+        T_DESCR_(stream, TOKEN_EOF)
+        T_DESCR_(stream, TOKEN_EMPTY)
+        T_DESCR_(stream, TOKEN_NUM_DOUBLE)
+        T_DESCR_(stream, TOKEN_NUM_INT64)
+        T_DESCR_(stream, TOKEN_ADD)
+        T_DESCR_(stream, TOKEN_MUL)
+        T_DESCR_(stream, TOKEN_SUB)
+        T_DESCR_(stream, TOKEN_DIV)
+        T_DESCR_(stream, TOKEN_O_BRACE)
+        T_DESCR_(stream, TOKEN_C_BRACE)
+        T_DESCR_(stream, TOKEN_O_FIG_BRACE)
+        T_DESCR_(stream, TOKEN_C_FIG_BRACE)
+        T_DESCR_(stream, TOKEN_EOL)
+        T_DESCR_(stream, TOKEN_SPACE)
+        T_DESCR_(stream, TOKEN_POW)
+        T_DESCR_(stream, TOKEN_ID)
+        T_DESCR_(stream, TOKEN_IF)
+        T_DESCR_(stream, TOKEN_WHILE)
+        T_DESCR_(stream, TOKEN_SEMICOLON)
+        T_DESCR_(stream, TOKEN_LESS)
+        T_DESCR_(stream, TOKEN_MORE)
+        T_DESCR_(stream, TOKEN_LESS_EQ)
+        T_DESCR_(stream, TOKEN_MORE_EQ)
+        T_DESCR_(stream, TOKEN_EQ)
+        T_DESCR_(stream, TOKEN_INT64_KEYWORD)
+        T_DESCR_(stream, TOKEN_DOUBLE_KEYWORD)
+        T_DESCR_(stream, TOKEN_ASSIGN)
+        T_DESCR_(stream, TOKEN_COMMA)
+        T_DESCR_(stream, TOKEN_RETURN)
+        T_DESCR_(stream, TOKEN_ELSE)
+        T_DESCR_(stream, TOKEN_VOID)
+        T_DESCR_(stream, TOKEN_STR_LIT)
+        default: snprintf(bufer, buf_sz, "UNKNOWN_LEX(%d) ", token_type); break;
+    }
+    #undef T_DESCR_
+}
 
 void lexem_dump(FILE *stream, parsing_block_t *data, lexem_t lexem) {
     #define T_DESCR_(stream, lex, fmt, val) case lex: fprintf(stream, #lex"(" fmt ")", val); break;
@@ -42,8 +85,6 @@ void lexem_dump(FILE *stream, parsing_block_t *data, lexem_t lexem) {
         T_DESCR_(stream, TOKEN_ELSE, "%s", "else")
         T_DESCR_(stream, TOKEN_VOID, "%s", "void")
         T_DESCR_(stream, TOKEN_STR_LIT, "\"%s\"", lexem.token_val.string_val)
-
-
         default: fprintf(stream, "UNKNOWN_LEX(%d) ", lexem.token_type); break;
     }
     #undef T_DESCR_

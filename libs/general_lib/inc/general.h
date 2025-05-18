@@ -10,6 +10,7 @@ const size_t time_nmemb = 16;
 const size_t MINI_BUFER_SZ = 16;
 const size_t MEDIUM_BUFER_SZ = 128;
 const size_t STR_F_BORDER_SZ = 100;
+const int ENGLISH_ALPHABET_SZ = 26;
 
 #define GRN "\e[0;32m"
 #define WHT "\e[0;20m"
