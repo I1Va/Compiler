@@ -35,3 +35,11 @@ void dump_global_info(FILE *stream, asm_glob_space *gl_space) {
     fprintf(stream, "var_stack: \n");
     STACK_DUMP(&gl_space->var_stack, stream, var_t_fprintf);
 }
+
+void generate_mangled_name(char bufer[], const size_t buf_sz, const char prefix[], const size_t mangling_suf_sz) {
+    assert(bufer);
+
+    size_t prefix_sz = strnlen(prefix, buf_sz);
+    snprintf(bufer, buf_sz, "%s", prefix);
+    generate_random_string(bufer + prefix_sz, mangling_suf_sz);
+}

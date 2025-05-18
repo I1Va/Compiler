@@ -4,11 +4,10 @@
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/bin/Compiler
+./build/Compiler
 ```
 
 ## 1. ELF header
-
 * e_ident(16) информация для идентификации elf файла
     * [0:3] - `0x7f 0x45 0x4c 0x46` - ELF
     * [4:4] - битность архитектуры (`0x01` - 32 бита, `0x02` - 64 бита)

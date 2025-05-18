@@ -6,6 +6,8 @@ add_library(BackEnd STATIC
     src/translator_general.cpp
     src/BackEnd.cpp
     src/stack_frame_proc.cpp
+    src/sections_proc.cpp
+    src/strong_type_proc.cpp
 )
 
 target_include_directories(BackEnd

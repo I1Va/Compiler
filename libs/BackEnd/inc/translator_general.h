@@ -5,6 +5,7 @@
 
 #include "stack_funcs.h"
 #include "general.h"
+#include "AST_proc.h"
 
 #define CHECK_AST_NODE_TYPE(node, exp_type)                                             \
     if (node->data.type != exp_type) {                                                  \
@@ -13,6 +14,7 @@
 
 #define RAISE_TRANSLATOR_ERROR(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: translator_error{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); abort();
 
+const size_t DEFAULT_MANGLING_SUFFIX_SZ = 7;
 const size_t MAX_TEXT_SECTION_SZ = 1ul << 13;
 const size_t MAX_DATA_SECTION_SZ = 1ul << 13;
 const size_t ASM_STACK_CELL_NMEMB = 8;
@@ -42,11 +44,15 @@ struct var_t {
     char *name;
     int loc_addr;
 };
-
 const var_t POISON_VAR = {-1, -1, NULL};
 
-void var_t_fprintf(FILE *stream, void *elem_ptr);
-void dump_global_info(FILE *stream, asm_glob_space *gl_space);
-void dump_var_stack(FILE *stream, stack_t *var_stack);
+struct func_info_t {
+    char *name;
+    int return_type_num;
+    size_t argc;
+};
+
+void generate_mangled_name(char bufer[], const size_t buf_sz, const char prefix[], const size_t mangling_suf_sz);
+
 
 #endif // TRANSLATOR_GENERAL_H

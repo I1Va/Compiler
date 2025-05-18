@@ -5,12 +5,12 @@
 #include "string_funcs.h"
 
 #include <assert.h>
-#include <cstdio>
+#include <stdio.h>
 
-void token_write(char bufer[], const size_t buf_sz, const lexer_token_t token_type) {
+int token_write(char bufer[], const size_t buf_sz, const lexer_token_t token_type) {
     assert(bufer);
 
-    #define T_DESCR_(stream, lex) case lex: snprintf(bufer, buf_sz, #lex); break;
+    #define T_DESCR_(stream, lex) case lex: return snprintf(bufer, buf_sz, "`%s`", #lex);
     switch (token_type) {
         T_DESCR_(stream, TOKEN_EOF)
         T_DESCR_(stream, TOKEN_EMPTY)
