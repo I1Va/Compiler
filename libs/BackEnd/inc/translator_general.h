@@ -50,7 +50,7 @@ struct var_t {
     int name_id;
     char *name;
 
-    int loc_addr;
+    int stack_frame_idx;
     int deep;
 };
 

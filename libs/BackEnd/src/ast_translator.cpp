@@ -91,11 +91,8 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         case AST_SEMICOLON: translate_semicolon(node, gl_space, asm_payload); break;
         case AST_VAR_INIT: translate_var_init(node, gl_space, asm_payload); break;
         case AST_FUNC_INIT: gl_space->func_init = true; translate_function_definition(node, gl_space, asm_payload); gl_space->func_init = false; break;
+        case AST_VAR_ID: translate_var_identifier(node, gl_space, asm_payload); break;
 
-        // case NODE_EMPTY: RAISE_TR_ERROR("incorrect AST: <NODE_EMPTY>")
-        //     break;
-        // case NODE_VAR: translate_var(node);
-        //     break;
         // case NODE_NUM: translate_num(node);
         //     break;
         // case NODE_OP: translate_op(node);
@@ -132,8 +129,11 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         //     break;
         // case NODE_STR_LIT: translate_string_literal(node);
         //     break;
+        // case NODE_EMPTY: RAISE_TR_ERROR("incorrect AST: <NODE_EMPTY>")
+        //     break;
         // default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.ast_node_type)
         //     break;
+
     }
 }
 
@@ -183,7 +183,8 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
         var_info.name       = var_name;
 
         var_info.deep       = gl_space->cur_scope_deep;
-        var_info.loc_addr   = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+
+        var_info.stack_frame_idx   = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
 
         add_local_variable_to_asm_payload(asm_payload, var_name, var_data_type, var_value);
     }
@@ -271,12 +272,12 @@ size_t translate_func_args_init(ast_tree_elem_t *node, asm_glob_space *gl_space,
     if (node->left) translate_func_args_init(node->left, gl_space, asm_payload);
 
     var_t var_info = {};
-    var_info.var_data_type  = convert_lexer_token_data_type((lexer_token_t) var_init_node->left->data.value.int64_val);
-    var_info.var_data_nmemb = get_data_type_nmemb(var_info.var_data_type);
-    var_info.name_id        = var_init_node->right->data.value.int64_val;
-    var_info.deep           = gl_space->cur_scope_deep + 1; // + 1 т.к. переменная инициализируется уже внутри скойпа функции
-    var_info.name           = var_init_node->right->data.value.sval;
-    var_info.loc_addr       = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+    var_info.var_data_type      = convert_lexer_token_data_type((lexer_token_t) var_init_node->left->data.value.int64_val);
+    var_info.var_data_nmemb     = get_data_type_nmemb(var_info.var_data_type);
+    var_info.name_id            = var_init_node->right->data.value.int64_val;
+    var_info.deep               = gl_space->cur_scope_deep + 1; // + 1 т.к. переменная инициализируется уже внутри скойпа функции
+    var_info.name               = var_init_node->right->data.value.sval;
+    var_info.stack_frame_idx    = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
 
     args_nmemb += var_info.var_data_nmemb;
 
@@ -284,28 +285,90 @@ size_t translate_func_args_init(ast_tree_elem_t *node, asm_glob_space *gl_space,
     return 0;
 }
 
+void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+    assert(node);
+    assert(gl_space);
+    assert(asm_payload);
+    CHECK_NODE_TYPE(node, AST_VAR_ID);
+
+    char *var_name = node->data.value.sval;             // строка хранится в string_storage, определенном в main.cpp
+    int var_name_unic_id = node->data.value.int64_val;  // идентификатор стэкового фрэйма
+
+    // На случай, если переменная глобальная:
 
 
-// FIXME:
-// void translate_var(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
-//     assert(node);
-//     assert(gl_space);
-//     assert(asm_payload);
-//     CHECK_NODE_TYPE(node, NODE_VAR);
 
-//     char *var_name = node->data.value.sval;             // строка хранится в string_storage, определенном в main.cpp
-//     int var_name_id = node->data.value.ival;            // идентификатор стэкового фрэйма
-//     var_t found_var = get_var_from_frame(var_name_id, &gl_space->var_stack, gl_space->cur_frame_ptr);
 
-//     if (var_t_equal(found_var, POISON_VAR)) {
-//         RAISE_TR_ERROR("var '%s' not initialized", var_name);
-//         return;
-//     }
+    var_t local_var = get_var_from_frame(var_name_unic_id, &gl_space->var_stack, gl_space->cur_frame_ptr);
+    bool local_var_defined = !var_t_equal(local_var, POISON_VAR);
+    // WARNING. THERE IS SHOULD BE RELOCATION!!!!!!
+    symbol_t global_var_sym = get_global_variable_sym_from_name_table(&asm_payload->symbol_table, var_name); // FIXME:
+    bool global_var_sym_defined = !symbol_t_equal(global_var_sym, POISON_SYMBOL);
 
-//     snprintf(asm_payload->text_section, MAX_TEXT_SECTION_SZ,
-//         "push [rbp + %d * %lu]; // access to '%s'\n",
-//         found_var.loc_addr + 2, ASM_STACK_CELL_NMEMB, found_var.name);
-// }
+    // WARNING. --------------------------------------------------------------------------------------------
+
+    if (!local_var_defined && !global_var_sym_defined) {
+        RAISE_TR_ERROR("var '%s' not initialized", var_name);
+        return;
+    }
+
+    // WARNING. THERE IS SHOULD BE RELOCATION!!!!!! FIXME:
+    if (local_var_defined) {
+        int var_stack_frame_offset = get_stack_frame_var_offset(&gl_space->var_stack, local_var.stack_frame_idx);
+
+        switch (local_var.var_data_type) {
+            case INT64_DATA_TYPE:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                    "mov    rbx, [rbp + %d]; // access to local int64 '%s'  \n"
+                    "push   rbx                                             \n",
+                    var_stack_frame_offset + 16, local_var.name);
+                return;
+
+            case DOUBLE_DATA_TYPE:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                    "movdqu xmm1, [rbp + %d]                            \n"
+                    "sub    rsp, 16                                     \n"
+                    "movdqu [rsp], xmm1 // access to local double '%s'  \n",
+                    var_stack_frame_offset + 16, local_var.name
+                )
+                return;
+
+            case STRING_DATA_TYPE: RAISE_TR_ERROR("error STRING_DATA_TYPE\n");
+            case NONE_TYPE: RAISE_TR_ERROR("error NONE_TYPE\n");
+        }
+    }
+
+    assert(global_var_sym_defined);
+    // WARNING. THERE IS SHOULD BE RELOCATION!!!!!! FIXME:
+    if (global_var_sym_defined) {
+        switch (local_var.var_data_type) {
+            case INT64_DATA_TYPE:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                    "mov    rbx, [%s]; // access to global int64 '%s'   \n"
+                    "push   rbx                                         \n",
+                    global_var_sym.sym_name, global_var_sym.sym_name);
+                return;
+
+            case DOUBLE_DATA_TYPE:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                    "movdqu xmm1, [%s]                                  \n"
+                    "sub    rsp, 16                                     \n"
+                    "movdqu [rsp], xmm1 // access to global double '%s' \n",
+                     global_var_sym.sym_name, global_var_sym.sym_name
+                )
+                return;
+
+            case STRING_DATA_TYPE:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                    "lea    rbx, %s; // access to global string '%s'    \n"
+                    "push   rbx                                         \n",
+                    global_var_sym.sym_name, global_var_sym.sym_name);
+                return;
+
+            case NONE_TYPE: RAISE_TR_ERROR("error NONE_TYPE\n");
+        }
+    }
+}
 
 
 

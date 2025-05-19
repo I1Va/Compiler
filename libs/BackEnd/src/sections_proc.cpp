@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <cstdlib>
+#include <cstring>
 #include <stdio.h>
 
 #include "general.h"
@@ -9,9 +10,19 @@
 
 static char bufer[BUFSIZ] = {};
 
-void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char *var_name, data_types var_data_type, const multi_val_t var_value) {
+void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char *var_name, const data_types var_data_type, const multi_val_t var_value) {
     assert(asm_payload);
-    assert(var_name);
+
+    symbol_t global_var_sym = {};
+    global_var_sym.sym_name = var_name;
+    global_var_sym.sym_bind = LOCAL_OBJ_SYMBOL;
+    global_var_sym.sym_section = DATA_SECTION;
+    // WARNING------------------------------------
+    global_var_sym.section_offset = -1; // FIXME:
+    // WARNING------------------------------------
+    global_var_sym.other_info = get_data_type_nmemb(var_data_type);
+
+    add_symbol_to_name_table(&asm_payload->symbol_table, global_var_sym);
 
     switch (var_data_type) {
         case INT64_DATA_TYPE    :  asm_payload->data_section_offset += snprintf(asm_payload->data_section + asm_payload->data_section_offset, MAX_DATA_SECTION_SZ, "\tdq %s: %ld\n", var_name, var_value.int64_val); return;
@@ -20,6 +31,7 @@ void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char
         case NONE_TYPE: RAISE_TRANSLATOR_ERROR("var_data_type: `NONE_TYPE`, expected: INT64_DATA_TYPE|DOUBLE_DATA_TYPE|STRING_PTR|STRING_LITERAL");
     }
 }
+
 
 void add_local_variable_to_asm_payload(asm_payload_t *asm_payload, char *var_name,  data_types var_data_type, const multi_val_t var_value) {
     assert(asm_payload);
@@ -68,3 +80,15 @@ void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol) {
     }
 };
 
+symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, char *sym_name) {
+    assert(symbol_table);
+    assert(sym_name);
+
+    for (size_t i = 0; i < symbol_table->table_sz; i++) {
+        symbol_t cur_sym = symbol_table->data[i];
+
+        if (strncmp(sym_name, cur_sym.sym_name, MAX_SYMBOL_NAME_SZ) == 0 && cur_sym.sym_type == VARIABLE_SYMBOL) return cur_sym;
+    }
+
+    return POISON_SYMBOL;
+}

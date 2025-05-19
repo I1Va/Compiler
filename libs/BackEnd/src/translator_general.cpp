@@ -16,7 +16,7 @@ void var_t_fprintf(FILE *stream, void *elem_ptr) {
 
     var_t var = *(var_t *) elem_ptr;
     fprintf(stream, "LOC VAR INIT(loc_ram[%d], name='%s', id=%d, deep=%d)",
-        var.loc_addr, var.name, var.name_id, var.deep);
+        var.stack_frame_idx, var.name, var.name_id, var.deep);
 }
 
 void dump_var_stack(FILE *stream, stack_t *var_stack) {

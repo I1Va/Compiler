@@ -15,6 +15,8 @@ const size_t MAX_DATA_SECTION_SZ = 1ul << 13;
                                                     MAX_TEXT_SECTION_SZ, str_, ##__VA_ARGS__);}
 
 enum symbol_type {
+    NONE_TYPE_SYMBOL,
+
     EXTERN_FUNCTION_SYMBOL,
     EXTERN_VARIABLE_SYMBOL,
     FUNCTION_SYMBOL,
@@ -22,6 +24,8 @@ enum symbol_type {
 };
 
 enum symbol_binding_type {
+    NONE_BINDING,
+
     GLOBAL_OBJ_SYMBOL,
     LOCAL_OBJ_SYMBOL,
 };
@@ -42,6 +46,8 @@ struct symbol_t {
     int64_t other_info;
 };
 
+const symbol_t POISON_SYMBOL = {NULL, NONE_TYPE_SYMBOL, NONE_BINDING, UNDEF_SECTION, -1, 0};
+
 struct symbol_table_t {
     size_t table_sz = 0;
     symbol_t data[SYMBOL_TABLE_MAX_SZ] = {};
@@ -61,6 +67,7 @@ void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char
 void add_local_variable_to_asm_payload(asm_payload_t *asm_payload, char *var_name, data_types var_data_type, const multi_val_t var_value);
 int get_symbol_idx_in_name_table(symbol_table_t *symbol_table, const symbol_t symbol);
 void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol);
+symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, char *sym_name);
 
 
 #endif // SECTIONS_PROCESSING_H
