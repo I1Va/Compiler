@@ -100,7 +100,7 @@ void var_t_fprintf(FILE *stream, void *elem_ptr);
 int add_var_into_frame(var_t var);
 void translate_func_args_init(size_t *argc, ast_tree_elem_t *node);
 void var_stack_restore_old_frame();
-void translate_function_init(ast_tree_elem_t *node);
+void translate_function_definition(ast_tree_elem_t *node);
 void translate_node_to_asm_code(ast_tree_elem_t *node);
 void translate_while(ast_tree_elem_t *node);
 void translate_while_condition(ast_tree_elem_t *node, int curr_counter);

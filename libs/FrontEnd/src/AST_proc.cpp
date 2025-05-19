@@ -103,6 +103,23 @@ ast_tree_elem_t *get_msubtree_copy(ast_tree_elem_t *root) {
     return root_copy;
 }
 
+size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum ast_node_types node_type) {
+    assert(node);
+
+    size_t count = (node->data.ast_node_type == node_type);
+
+    if (node->left) {
+
+        count += count_node_type_in_subtreeas(node->left, node_type);
+    }
+    if (node->right) {
+
+        count += count_node_type_in_subtreeas(node->right, node_type);
+    }
+
+    return count;
+}
+
 void ast_tree_print(ast_tree_elem_t *node, void (*outp_func)(char *dest, const size_t maxn_n, const ast_tree_elem_t *node)) {
     if (!node) {
         return;

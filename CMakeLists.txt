@@ -49,11 +49,48 @@ target_link_libraries(Compiler PRIVATE
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(Compiler PRIVATE
         -fsanitize=address
+        -fsanitize=alignment
+        -fsanitize=bool
+        -fsanitize=bounds
+        -fsanitize=enum
+        -fsanitize=float-cast-overflow
+        -fsanitize=float-divide-by-zero
+        -fsanitize=integer-divide-by-zero
+        -fsanitize=nonnull-attribute
+        -fsanitize=null
+        -fsanitize=object-size
+        -fsanitize=return
+        -fsanitize=returns-nonnull-attribute
+        -fsanitize=return
+        -fsanitize=shift
+        -fsanitize=return
+        -fsanitize=signed-integer-overflow
         -fsanitize=undefined
-        -fno-omit-frame-pointer
+        -fsanitize=unreachable
+        -fsanitize=vla-bound
+        -fsanitize=vptr
     )
     target_link_options(Compiler PRIVATE
-        -fsanitize=address
+    -fsanitize=address
+        -fsanitize=alignment
+        -fsanitize=bool
+        -fsanitize=bounds
+        -fsanitize=enum
+        -fsanitize=float-cast-overflow
+        -fsanitize=float-divide-by-zero
+        -fsanitize=integer-divide-by-zero
+        -fsanitize=nonnull-attribute
+        -fsanitize=null
+        -fsanitize=object-size
+        -fsanitize=return
+        -fsanitize=returns-nonnull-attribute
+        -fsanitize=return
+        -fsanitize=shift
+        -fsanitize=return
+        -fsanitize=signed-integer-overflow
         -fsanitize=undefined
+        -fsanitize=unreachable
+        -fsanitize=vla-bound
+        -fsanitize=vptr
     )
 endif()

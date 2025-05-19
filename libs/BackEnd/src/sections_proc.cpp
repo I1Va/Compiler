@@ -3,10 +3,8 @@
 #include <stdio.h>
 
 #include "general.h"
-#include "string_funcs.h"
 #include "translator_general.h"
-#include "FrontEnd.h"
-#include "lang_logger.h"
+#include "sections_processing.h"
 
 
 static char bufer[BUFSIZ] = {};
@@ -49,3 +47,24 @@ void add_local_variable_to_asm_payload(asm_payload_t *asm_payload, char *var_nam
             debug("error local variable type : NONE_TYPE!!\n"); abort();
     }
 }
+
+int get_symbol_idx_in_name_table(symbol_table_t *symbol_table, const symbol_t symbol) {
+    assert(symbol_table);
+
+    for (size_t i = 0; i < symbol_table->table_sz; i++) {
+        symbol_t cur_symbol = symbol_table->data[i];
+        if (strncmp(symbol.sym_name, cur_symbol.sym_name, MAX_SYMBOL_NAME_SZ) == 0) {
+            return (int) i;
+        }
+    }
+
+    return -1;
+}
+
+void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol) {
+    if (get_symbol_idx_in_name_table(symbol_table, symbol) != -1) {
+        RAISE_TRANSLATOR_ERROR("function '%s' redefenition", symbol.sym_name);
+        return;
+    }
+};
+

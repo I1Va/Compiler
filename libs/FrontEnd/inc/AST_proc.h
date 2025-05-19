@@ -62,5 +62,7 @@ void sub_tree_dtor(ast_tree_elem_t *root);
 void mark_subtree(ast_tree_elem_t *root, ast_tree_t *tree);
 void ast_tree_dtor(ast_tree_t *tree);
 size_t place_subtrees_sz(ast_tree_elem_t *root);
+size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum ast_node_types node_type);
+
 
 #endif // AST_PROC_H

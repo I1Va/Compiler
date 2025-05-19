@@ -63,3 +63,14 @@ int add_var_into_frame(var_t var, stack_t *var_stack, const int cur_frame_ptr) {
     stack_push(var_stack, &var);
     return var.loc_addr;
 }
+
+void var_stack_restore_old_frame(stack_t *var_stack, const int cur_frame_ptr) {
+    assert(var_stack);
+
+    var_t last_elem = {};
+
+    for (int i = (int) var_stack->size; i > cur_frame_ptr; i--) {
+        stack_get_elem(var_stack, &last_elem, var_stack->size - 1);
+        stack_pop(var_stack);
+    }
+}

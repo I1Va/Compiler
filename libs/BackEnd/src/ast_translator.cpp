@@ -90,9 +90,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
     switch (node->data.ast_node_type) {
         case AST_SEMICOLON: translate_semicolon(node, gl_space, asm_payload); break;
         case AST_VAR_INIT: translate_var_init(node, gl_space, asm_payload); break;
-        // case AST_FUNC_INIT: gl_space->func_init = true; translate_function_init(node, gl_space, asm_payload); gl_space->func_init = false; break;
-
-
+        case AST_FUNC_INIT: gl_space->func_init = true; translate_function_definition(node, gl_space, asm_payload); gl_space->func_init = false; break;
 
         // case NODE_EMPTY: RAISE_TR_ERROR("incorrect AST: <NODE_EMPTY>")
         //     break;
@@ -108,7 +106,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         //     break;
         // case NODE_FUNC_ID: RAISE_TR_ERROR(
         //     "<NODE_FUNC_ID> should be processed in"
-        //     "<translate_func_call/translate_function_init>")
+        //     "<translate_func_call/translate_function_definition>")
         //     break;
         // case NODE_CALL: translate_func_call(node);
         //     break;
@@ -134,7 +132,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         //     break;
         // case NODE_STR_LIT: translate_string_literal(node);
         //     break;
-        // default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.type)
+        // default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.ast_node_type)
         //     break;
     }
 }
@@ -169,7 +167,7 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
 
     multi_val_t      var_value          = with_assignment? node->right->right->data.value : EMPTY_MULTI_VAL;
 
-    data_types       var_data_type      = convert_AST_data_type(initialization_type);
+    data_types       var_data_type      = convert_lexer_token_data_type(initialization_type);
     data_types_nmemb var_data_nmemb     = get_data_type_nmemb(var_data_type);
 
 
@@ -191,59 +189,101 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
     }
 }
 
-void translate_function_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
-    assert(node->data.ast_node_type == AST_FUNC_INIT);
+    CHECK_AST_NODE_TYPE(node, AST_FUNC_INIT);
 
     size_t argc = 0;
-    func_info_t func_info = {};
 
-    func_info.return_type_num = node->left->data.value.int64_val;
-    func_info.name = node->right->data.value.sval;
+    lexer_token_t function_return_type = (lexer_token_t) node->left->data.value.int64_val;
+    CHECK_AST_NODE_TYPE(node->left, AST_TYPE);
 
-    snprintf(asm_payload->text_section, MAX_TEXT_SECTION_SZ,
+
+    symbol_t func_symbol = {};
+    func_symbol.sym_name = node->right->data.value.sval;
+    func_symbol.sym_type = FUNCTION_SYMBOL;
+    // WARNING!!!!---------------------------------------------------
+    func_symbol.section_offset = asm_payload->text_section_offset; // FIXME:!!!!
+    // WARNING!!!!---------------------------------------------------
+    func_symbol.sym_bind = GLOBAL_OBJ_SYMBOL;
+    func_symbol.sym_section = TEXT_SECTION;
+    func_symbol.other_info = 0; // количество байт, зарезервированных под инициализацию аргументов
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
         "\n;#=========Function========#\n"
         "%s:\n"
         ";#=======Input=Action======#\n"
-        "push  rbp\n"
-        "mov   rbp, rsp;\n" // save of prev rpb into register
+        "push  rbp      \n"
+        "mov   rbp, rsp \n"
         ";#=======End=Action========#\n",
-        func_info.name);
+        func_symbol.sym_name);
 
-    // node = node->right; // func_id
-    // CHECK_NODE_TYPE(node, NODE_FUNC_ID)
+    ast_tree_elem_t *func_id_node = node->right;
+    CHECK_NODE_TYPE(func_id_node, AST_FUNC_ID)
 
-    // if (node->left) {
-    //     translate_func_args_init(&argc, node->left); // write_args_initialization // FIXME:!!!!!
-    // }
+    if (func_id_node->left) func_symbol.other_info = (int64_t) translate_func_args_init(func_id_node->left, gl_space, asm_payload);
+    add_symbol_to_name_table(&asm_payload->symbol_table, func_symbol);
 
-    // func_info.argc = argc;
-    // add_function_to_name_table(func_info);
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "\n;#========Func=Body========#\n");
 
+    translate_node_to_asm_code(func_id_node->right, gl_space, asm_payload); // func_body
 
-    // fprintf(asm_code_ptr, "\n;#========Func=Body========#\n");
-    // translate_node_to_asm_code(node->right); //func_body;
-    // fprintf(asm_code_ptr, ";#========End=Body=========#\n");
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "\n;#========Func=Body========#\n");
 
-    // size_t return_num = count_node_type_in_subtreeas(node->right, NODE_RETURN);
-    // void_func = func_info.return_type_num == AST_VOID;
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        ";#========End=Body=========#\n");
 
-    // if (return_num == 0 && !void_func) {
-    //     RAISE_TR_ERROR("non void function '%s' hasn't <return>", func_info.name);
-    //     return;
-    // }
+    size_t return_num = count_node_type_in_subtreeas(node->right, AST_RETURN);
+    bool void_func_state = function_return_type == TOKEN_VOID;
 
-    // fprintf(asm_code_ptr,   "\n;#=======Leave=Action======#\n"
-    //                     "push rbp;\n"
-    //                     "pop rsp; stack_pointer = frame_pointer\n"
-    //                     "pop  rbp;\n"
-    //                     "ret;\n"
-    //                     "%s_end:;\n"
-    //                     ";#=======End=Function======#\n",
-    //                     func_info.name);
+    if (return_num == 0 && !void_func_state) {
+        RAISE_TR_ERROR("non void function '%s' hasn't <return>", func_symbol.sym_name);
+        return;
+    }
 
-    // var_stack_restore_old_frame(); // call stack loc vars clearing + restore old_frame
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "\n;#=======Leave=Action======#\n"
+        "mov    rsp, rbp\n"
+        "pop    rbp     \n"
+        "ret            \n"
+        "%s_end:        \n"
+        ";#=======End=Function======#\n",
+        func_symbol.sym_name);
+
+    var_stack_restore_old_frame(&gl_space->var_stack, gl_space->cur_frame_ptr); // call stack loc vars clearing + restore old_frame
 }
+
+size_t translate_func_args_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+    assert(node);
+    assert(gl_space);
+    assert(asm_payload);
+    assert(node->right);
+    CHECK_NODE_TYPE(node, AST_COMMA);
+
+    static size_t args_nmemb = 0;
+
+    ast_tree_elem_t *var_init_node = node->right; // var_init
+    CHECK_NODE_TYPE(var_init_node, AST_VAR_INIT);
+    CHECK_NODE_TYPE(var_init_node->left, AST_TYPE);
+
+    if (node->left) translate_func_args_init(node->left, gl_space, asm_payload);
+
+    var_t var_info = {};
+    var_info.var_data_type  = convert_lexer_token_data_type((lexer_token_t) var_init_node->left->data.value.int64_val);
+    var_info.var_data_nmemb = get_data_type_nmemb(var_info.var_data_type);
+    var_info.name_id        = var_init_node->right->data.value.int64_val;
+    var_info.deep           = gl_space->cur_scope_deep + 1; // + 1 т.к. переменная инициализируется уже внутри скойпа функции
+    var_info.name           = var_init_node->right->data.value.sval;
+    var_info.loc_addr       = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+
+    args_nmemb += var_info.var_data_nmemb;
+
+    if (!node->left) return args_nmemb;
+    return 0;
+}
+
 
 
 // FIXME:

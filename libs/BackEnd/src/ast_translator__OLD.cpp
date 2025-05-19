@@ -153,7 +153,7 @@ void translate_ast_to_asm_code(const char path[], ast_tree_t *tree) {
 size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum ast_node_types node_type) {
     assert(node);
 
-    size_t count = (node->data.type == node_type);
+    size_t count = (node->data.ast_node_type == node_type);
 
     if (node->left) {
 
@@ -280,9 +280,9 @@ void var_stack_restore_old_frame() {
     }
 }
 
-void translate_function_init(ast_tree_elem_t *node) {
+void translate_function_definition(ast_tree_elem_t *node) {
     assert(node);
-    assert(node->data.type == NODE_FUNC_INIT);
+    assert(node->data.ast_node_type == NODE_FUNC_INIT);
 
     size_t argc = 0;
     func_info_t func_info = {};
@@ -337,7 +337,6 @@ void translate_function_init(ast_tree_elem_t *node) {
 }
 
 void translate_scope(ast_tree_elem_t *node) {
-
     assert(node);
     CHECK_NODE_TYPE(node, NODE_SCOPE);
 
@@ -390,16 +389,16 @@ void translate_string_literal(ast_tree_elem_t *node) {
 void translate_op(ast_tree_elem_t *node) {
     assert(node);
 
-    if (node->data.type == NODE_NUM) {
+    if (node->data.ast_node_type == NODE_NUM) {
         translate_num(node);
         return;
-    } else if (node->data.type == NODE_VAR) {
+    } else if (node->data.ast_node_type == NODE_VAR) {
         translate_var(node);
         return;
-    } else if (node->data.type == NODE_STR_LIT) {
-        RAISE_TR_ERROR("translate_op doesn't support node_type: {%d}", node->data.type);
+    } else if (node->data.ast_node_type == NODE_STR_LIT) {
+        RAISE_TR_ERROR("translate_op doesn't support node_type: {%d}", node->data.ast_node_type);
         return;
-    } else if (node->data.type == NODE_CALL) {
+    } else if (node->data.ast_node_type == NODE_CALL) {
         translate_func_call(node);
         return;
     }
@@ -430,7 +429,7 @@ void translate_op(ast_tree_elem_t *node) {
 void translate_node_to_asm_code(ast_tree_elem_t *node) {
 
     assert(node);
-    switch (node->data.type) {
+    switch (node->data.ast_node_type) {
 
         case NODE_EMPTY: RAISE_TR_ERROR("incorrect AST: <NODE_EMPTY>")
             break;
@@ -448,7 +447,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node) {
             break;
         case NODE_FUNC_ID: RAISE_TR_ERROR(
             "<NODE_FUNC_ID> should be processed in"
-            "<translate_func_call/translate_function_init>")
+            "<translate_func_call/translate_function_definition>")
             break;
         case NODE_CALL: translate_func_call(node);
             break;
@@ -466,7 +465,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node) {
             break;
         case NODE_WHILE: translate_while(node);
             break;
-        case NODE_FUNC_INIT: func_init = true; translate_function_init(node); func_init = false;
+        case NODE_FUNC_INIT: func_init = true; translate_function_definition(node); func_init = false;
             break;
         case NODE_IF: translate_if(node);
             break;
@@ -478,7 +477,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node) {
             break;
         case NODE_STR_LIT: translate_string_literal(node);
             break;
-        default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.type)
+        default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.ast_node_type)
             break;
     }
 }

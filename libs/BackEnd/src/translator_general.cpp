@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "AST_structs.h"
 #include "FrontEnd.h"
 #include "general.h"
 #include "lang_logger.h"
@@ -27,7 +28,7 @@ void dump_var_stack(FILE *stream, stack_t *var_stack) {
     STACK_DUMP(var_stack, stream, var_t_fprintf);
 }
 
-data_types convert_AST_data_type(lexer_token_t token_type) {
+data_types convert_lexer_token_data_type(lexer_token_t token_type) {
     switch (token_type) {
         case TOKEN_STRING_KEYWORD: return STRING_DATA_TYPE;
         case TOKEN_INT64_KEYWORD: return INT64_DATA_TYPE;
