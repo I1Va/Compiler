@@ -78,16 +78,19 @@ bool try_parse_string_literal(parsing_block_t *data, lexem_t *lexem, char *str) 
     assert(data);
     assert(lexem);
     assert(str);
+
     if (*str != '"') {return false;}
 
     char *open_quote = str;
     char *close_quote = strchr(str + 1, '"');
+
 
     if (!close_quote) {
         debug("CLOSE_QUOTE ABSENT: '%*.s'", (int) STRING_PREVIEW_CNT, str);
         lexem->token_type = TOKEN_EOF;
         return true;
     }
+
 
     size_t len = (size_t) (close_quote - open_quote) + 1;
 

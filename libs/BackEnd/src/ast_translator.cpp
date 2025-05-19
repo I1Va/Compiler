@@ -72,7 +72,7 @@ void translate_ast_to_asm_code(ast_tree_t *tree) {
     asm_payload_t asm_payload = {};
 
     translate_node_to_asm_code(tree->root, &gl_space, &asm_payload);
-    dump_asm_payload_to_file("./testing_space/code.asm", &asm_payload);
+    dump_asm_payload_to_file("./testing_space/code.txt", &asm_payload);
 
     translator_global_space_clear(&gl_space);
 
@@ -166,7 +166,7 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
             return;
         case AST_STR_LIT:
             generate_mangled_name(bufer, BUFSIZ, "str_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
-            add_global_variable_record_to_data_section(asm_payload, bufer, DOUBLE_DATA_TYPE, node->data.value);
+            add_global_variable_record_to_data_section(asm_payload, bufer, STRING_DATA_TYPE, node->data.value);
 
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "lea    rbx, %s;//                     \n"
@@ -255,38 +255,38 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "mov    rbx, [rsp];// get access to stack last value (for assignment)\n"
                         "add    rsp, 8    ;// remove last value stack value                  \n"
-                        "push   rbx       ;// save new local variable on stack               \n"
-                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "push   rbx       ;// save new local variable `%s` on stack          \n",
+                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        "sub    rsp, 8    ;// reserve satck space for new local variable     \n"
-                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "sub    rsp, 8    ;// reserve satck space for new local variable `%s`     \n",
+                    var_info.name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 }
 
             case DOUBLE_DATA_TYPE:
             if (with_assignment) {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        "movdqu xmm1, [rsp];// get access to stack last value for assignment\n"
-                        "add    rsp, 16    ;// remove last value from stack                 \n"
-                        "sub    rsp, 16    ;// reserve stack space for new local variable   \n"
-                        "movdqu [rsp], xmm1;//  save new local variable on stack            \n"
-                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "movdqu xmm1, [rsp];// get access to stack last value for assignment    \n"
+                        "add    rsp, 16    ;// remove last value from stack                     \n"
+                        "sub    rsp, 16    ;// reserve stack space for new local variable `%s`  \n"
+                        "movdqu [rsp], xmm1;//  save new local variable on stack                \n",
+                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        "sub    rsp, 16    ;// reserve stack space for new local variable   \n"
-                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "sub    rsp, 16    ;// reserve stack space for new local variable `%s`  \n",
+                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 }
 
             case STRING_DATA_TYPE: // Для указателя на строковый литерал создаем строковый литерал в секции .data
                 if (with_assignment) {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "lea    rbx, %s;// get access to global string literal (for assignment)\n"
-                        "push   rbx    ;// save new local variable on stack                    \n",
-                    bufer); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "push   rbx    ;// save new local variable `%s` on stack               \n",
+                    bufer, var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        "sub    rsp, 8    ;// reserve stack space for new local variable     \n"
-                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                        "sub    rsp, 8    ;// reserve stack space for new local variable `%s`  \n",
+                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
                 }
 
             case NONE_TYPE:
