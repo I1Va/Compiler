@@ -6,6 +6,7 @@
 #include "stack_funcs.h"
 #include "general.h"
 #include "AST_proc.h"
+#include "FrontEnd.h"
 
 #define CHECK_AST_NODE_TYPE(node, exp_type)                                             \
     if (node->data.type != exp_type) {                                                  \
@@ -13,6 +14,20 @@
     }
 
 #define RAISE_TRANSLATOR_ERROR(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: translator_error{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); abort();
+
+enum data_types {
+    NONE_TYPE,
+    INT64_DATA_TYPE,
+    DOUBLE_DATA_TYPE,
+    STRING_DATA_TYPE,
+};
+
+enum data_types_nmemb {
+    NONE_TYPE_NMEMB = 0,
+    INT64_NMEMB = 8,
+    STRING_PTR_NMEMB = 8,
+    DOUBLE_NMEMB = 16,
+};
 
 const size_t DEFAULT_MANGLING_SUFFIX_SZ = 7;
 const size_t MAX_TEXT_SECTION_SZ = 1ul << 13;
@@ -39,12 +54,17 @@ struct asm_glob_space {
 };
 
 struct var_t {
-    int deep;
+    data_types var_data_type;
+    data_types_nmemb var_data_nmemb;
+
     int name_id;
     char *name;
+
     int loc_addr;
+    int deep;
 };
-const var_t POISON_VAR = {-1, -1, NULL};
+
+const var_t POISON_VAR = {NONE_TYPE, NONE_TYPE_NMEMB, -1, NULL, -1, -1};
 
 struct func_info_t {
     char *name;
@@ -53,6 +73,7 @@ struct func_info_t {
 };
 
 void generate_mangled_name(char bufer[], const size_t buf_sz, const char prefix[], const size_t mangling_suf_sz);
-
+data_types convert_AST_data_type(lexer_token_t token_type);
+data_types_nmemb get_data_type_nmemb(data_types data_type);
 
 #endif // TRANSLATOR_GENERAL_H

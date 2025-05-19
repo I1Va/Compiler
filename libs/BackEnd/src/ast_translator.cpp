@@ -90,7 +90,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
     switch (node->data.ast_node_type) {
         case AST_SEMICOLON: translate_semicolon(node, gl_space, asm_payload); break;
         case AST_VAR_INIT: translate_var_init(node, gl_space, asm_payload); break;
-        case AST_FUNC_INIT: gl_space->func_init = true; translate_function_init(node, gl_space, asm_payload); gl_space->func_init = false; break;
+        // case AST_FUNC_INIT: gl_space->func_init = true; translate_function_init(node, gl_space, asm_payload); gl_space->func_init = false; break;
 
 
 
@@ -159,27 +159,35 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
     assert(asm_payload);
     CHECK_NODE_TYPE(node, AST_VAR_INIT);
 
-    bool with_assignment            = (node->right->data.ast_node_type == AST_ASSIGN);
-    bool global_state               = (gl_space->cur_scope_deep == 0);
-    int  initialization_type        = node->left->data.value.int64_val; assert(initialization_type == TOKEN_INT64_KEYWORD || initialization_type == TOKEN_DOUBLE_KEYWORD || initialization_type == TOKEN_STRING_KEYWORD);
+    bool with_assignment                = (node->right->data.ast_node_type == AST_ASSIGN);
+    bool global_state                   = (gl_space->cur_scope_deep == 0);
+    lexer_token_t initialization_type   = (lexer_token_t) node->left->data.value.int64_val; assert(initialization_type == TOKEN_INT64_KEYWORD || initialization_type == TOKEN_DOUBLE_KEYWORD || initialization_type == TOKEN_STRING_KEYWORD);
 
-    ast_tree_elem_t *var_ast_node   = with_assignment? node->right->left : node->right;
-    char            *var_name       = var_ast_node->data.value.sval;
-    int              var_id         = var_ast_node->data.value.int64_val;
+    ast_tree_elem_t *var_ast_node       = with_assignment? node->right->left : node->right;
+    char            *var_name           = var_ast_node->data.value.sval;
+    int              var_id             = var_ast_node->data.value.int64_val;
 
-    multi_val_t      var_value      = with_assignment? node->right->right->data.value : EMPTY_MULTI_VAL;
+    multi_val_t      var_value          = with_assignment? node->right->right->data.value : EMPTY_MULTI_VAL;
+
+    data_types       var_data_type      = convert_AST_data_type(initialization_type);
+    data_types_nmemb var_data_nmemb     = get_data_type_nmemb(var_data_type);
 
 
     if (global_state) {
-        add_global_variable_record_to_data_section(asm_payload, var_name, initialization_type, var_value);
+        add_global_variable_record_to_data_section(asm_payload, var_name, var_data_type, var_value);
     } else {
         var_t var_info = {};
-        var_info.deep       = gl_space->cur_scope_deep;
-        var_info.name       = var_name;
+
+        var_info.var_data_type       = var_data_type;
+        var_info.var_data_nmemb      = var_data_nmemb;
+
         var_info.name_id    = var_value.int64_val;
+        var_info.name       = var_name;
+
+        var_info.deep       = gl_space->cur_scope_deep;
         var_info.loc_addr   = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
 
-        add_local_variable_to_asm_payload(asm_payload, var_name, initialization_type, var_value);
+        add_local_variable_to_asm_payload(asm_payload, var_name, var_data_type, var_value);
     }
 }
 
@@ -193,16 +201,14 @@ void translate_function_init(ast_tree_elem_t *node, asm_glob_space *gl_space, as
     func_info.return_type_num = node->left->data.value.int64_val;
     func_info.name = node->right->data.value.sval;
 
-    // fprintf(asm_code_ptr,
-
-    //                      "\n;#=========Function========#\n"
-    //                      "%s:\n"
-    //                      ";#=======Input=Action======#\n"
-    //                      "push  rbp\n"
-    //                      "mov   rbp, rsp;\n" // save of prev rpb into register
-    //                      ";#=======End=Action========#\n",
-    //                      func_info.name);
-
+    snprintf(asm_payload->text_section, MAX_TEXT_SECTION_SZ,
+        "\n;#=========Function========#\n"
+        "%s:\n"
+        ";#=======Input=Action======#\n"
+        "push  rbp\n"
+        "mov   rbp, rsp;\n" // save of prev rpb into register
+        ";#=======End=Action========#\n",
+        func_info.name);
 
     // node = node->right; // func_id
     // CHECK_NODE_TYPE(node, NODE_FUNC_ID)
