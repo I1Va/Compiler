@@ -54,10 +54,12 @@ struct var_t {
     int deep;
 };
 
-const var_t POISON_VAR = {NONE_TYPE, NONE_TYPE_NMEMB, -1, NULL, -1, -1};
+const var_t POISON_VAR_T = {NONE_TYPE, NONE_TYPE_NMEMB, -1, NULL, -1, -1};
 
 void generate_mangled_name(char bufer[], const size_t buf_sz, const char prefix[], const size_t mangling_suf_sz);
 data_types convert_lexer_token_data_type(lexer_token_t token_type);
 data_types_nmemb get_data_type_nmemb(data_types data_type);
+void var_t_fprintf(FILE *stream, void *elem_ptr);
+
 
 #endif // TRANSLATOR_GENERAL_H

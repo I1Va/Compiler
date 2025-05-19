@@ -224,6 +224,7 @@ bool var_t_equal(const var_t v1, const var_t v2) {
 
 int add_var_into_frame(var_t var) {
     var_t found_var = get_var_from_frame(var.name_id);
+    var_t_fprintf(stdout, found_var);
     if (!var_t_equal(found_var, POISON_VAR)) {
         dump_global_info(stderr);
         RAISE_TR_ERROR("variable '%s' redefenition", var.name);

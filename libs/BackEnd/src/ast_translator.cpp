@@ -81,7 +81,6 @@ void translate_ast_to_asm_code(ast_tree_t *tree) {
     //                     "hlt;\n");
 }
 
-
 void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
     assert(gl_space);
@@ -92,9 +91,13 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         case AST_VAR_INIT: translate_var_init(node, gl_space, asm_payload); break;
         case AST_FUNC_INIT: gl_space->func_init = true; translate_function_definition(node, gl_space, asm_payload); gl_space->func_init = false; break;
         case AST_VAR_ID: translate_var_identifier(node, gl_space, asm_payload); break;
+        case AST_SCOPE: translate_scope(node, gl_space, asm_payload); break;
 
-        // case NODE_NUM: translate_num(node);
-        //     break;
+        case AST_NUM_DOUBLE :
+        case AST_NUM_INT64  :
+        case AST_STR_LIT    :
+            translate_constant(node, gl_space, asm_payload); break;
+
         // case NODE_OP: translate_op(node);
         //     break;
         // case NODE_TYPE: fprintf_red(stdout, "there is should be <NODE_TYPE> translation\n");
@@ -111,8 +114,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         //     "<NODE_ELSE> should be processed in"
         //     "<translate_if>")
         //     break;
-        // case NODE_SCOPE: translate_scope(node);
-        //     break;
+
         // case NODE_RETURN: translate_return(node);
         //     break;
         // case NODE_BREAK: fprintf_red(stdout, "there is should be <NODE_BREAK> translation");
@@ -137,6 +139,46 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
     }
 }
 
+void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+    assert(node);
+    assert(gl_space);
+    assert(asm_payload);
+    assert(
+        node->data.ast_node_type == AST_NUM_DOUBLE  ||
+        node->data.ast_node_type == AST_NUM_INT64   ||
+        node->data.ast_node_type == AST_STR_LIT);
+
+    switch (node->data.ast_node_type) {
+        case AST_NUM_INT64:
+            MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                "push   %ld;// push int64 constant\n",
+            node->data.value.int64_val)
+            return;
+        case AST_NUM_DOUBLE:
+            generate_mangled_name(bufer, BUFSIZ, "double_constant_", DEFAULT_MANGLING_SUFFIX_SZ);
+            add_global_variable_record_to_data_section(asm_payload, bufer, DOUBLE_DATA_TYPE, node->data.value);
+
+            MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                "movdqu xmm1, [%s];//                     \n"
+                "sub    rsp, 16   ;// push double constant\n"
+                "movdqu [rsp] xmm1;//                     \n",
+                bufer)
+            return;
+        case AST_STR_LIT:
+            generate_mangled_name(bufer, BUFSIZ, "str_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
+            add_global_variable_record_to_data_section(asm_payload, bufer, DOUBLE_DATA_TYPE, node->data.value);
+
+            MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                "lea    rbx, %s;//                     \n"
+                "push   rbx    ;// push double constant\n",
+                bufer)
+            return;
+        default:
+            ast_node_type_write(bufer, BUFSIZ, node->data.ast_node_type);
+            RAISE_TR_ERROR("error : `%s` isn't constant type\n", bufer)
+    }
+}
+
 void translate_semicolon(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
     assert(gl_space);
@@ -148,6 +190,31 @@ void translate_semicolon(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
     }
     if (node->right) {
         translate_node_to_asm_code(node->right, gl_space, asm_payload);
+    }
+}
+
+void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char *var_name, const data_types var_data_type, const multi_val_t var_value) {
+    assert(asm_payload);
+
+    symbol_t global_var_sym = {};
+    global_var_sym.sym_name = var_name;
+    global_var_sym.sym_bind = LOCAL_OBJ_SYMBOL;
+    global_var_sym.sym_section = DATA_SECTION;
+    // WARNING------------------------------------
+    global_var_sym.section_offset = -1; // FIXME:
+    // WARNING------------------------------------
+    global_var_sym.other_info = get_data_type_nmemb(var_data_type);
+
+    add_symbol_to_name_table(&asm_payload->symbol_table, global_var_sym);
+
+
+
+    switch (var_data_type) {
+        case INT64_DATA_TYPE    :  MAKE_RECORD_IN_DATA_SECTION(asm_payload, "\tdq %s: %ld\n", var_name, var_value.int64_val) return;
+        case DOUBLE_DATA_TYPE   :  MAKE_RECORD_IN_DATA_SECTION(asm_payload, "\tdq %s: %lf\n", var_name, var_value.double_val) return;
+        case STRING_DATA_TYPE   :  MAKE_RECORD_IN_DATA_SECTION(asm_payload, "\tdb %s: '%s'\n", var_name, var_value.sval) return;
+
+        case NONE_TYPE: RAISE_TRANSLATOR_ERROR("var_data_type: `NONE_TYPE`, expected: INT64_DATA_TYPE|DOUBLE_DATA_TYPE|STRING_PTR|STRING_LITERAL");
     }
 }
 
@@ -163,30 +230,68 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
 
     ast_tree_elem_t *var_ast_node       = with_assignment? node->right->left : node->right;
     char            *var_name           = var_ast_node->data.value.sval;
-    int              var_id             = var_ast_node->data.value.int64_val;
+    int64_t          var_id             = var_ast_node->data.value.int64_val;
 
     multi_val_t      var_value          = with_assignment? node->right->right->data.value : EMPTY_MULTI_VAL;
 
     data_types       var_data_type      = convert_lexer_token_data_type(initialization_type);
     data_types_nmemb var_data_nmemb     = get_data_type_nmemb(var_data_type);
 
-
     if (global_state) {
         add_global_variable_record_to_data_section(asm_payload, var_name, var_data_type, var_value);
     } else {
+        if (with_assignment) translate_node_to_asm_code(node->right->right, gl_space, asm_payload);
+
         var_t var_info = {};
+        var_info.var_data_type      = var_data_type;
+        var_info.var_data_nmemb     = var_data_nmemb;
+        var_info.name_id            = var_id;
+        var_info.name               = var_name;
+        var_info.deep               = gl_space->cur_scope_deep;
 
-        var_info.var_data_type       = var_data_type;
-        var_info.var_data_nmemb      = var_data_nmemb;
+        switch (var_data_type) {
+            case INT64_DATA_TYPE:
+                if (with_assignment) {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "mov    rbx, [rsp];// get access to stack last value (for assignment)\n"
+                        "add    rsp, 8    ;// remove last value stack value                  \n"
+                        "push   rbx       ;// save new local variable on stack               \n"
+                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                } else {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "sub    rsp, 8    ;// reserve satck space for new local variable     \n"
+                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                }
 
-        var_info.name_id    = var_value.int64_val;
-        var_info.name       = var_name;
+            case DOUBLE_DATA_TYPE:
+            if (with_assignment) {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "movdqu xmm1, [rsp];// get access to stack last value for assignment\n"
+                        "add    rsp, 16    ;// remove last value from stack                 \n"
+                        "sub    rsp, 16    ;// reserve stack space for new local variable   \n"
+                        "movdqu [rsp], xmm1;//  save new local variable on stack            \n"
+                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                } else {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "sub    rsp, 16    ;// reserve stack space for new local variable   \n"
+                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                }
 
-        var_info.deep       = gl_space->cur_scope_deep;
+            case STRING_DATA_TYPE: // Для указателя на строковый литерал создаем строковый литерал в секции .data
+                if (with_assignment) {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "lea    rbx, %s;// get access to global string literal (for assignment)\n"
+                        "push   rbx    ;// save new local variable on stack                    \n",
+                    bufer); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                } else {
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "sub    rsp, 8    ;// reserve stack space for new local variable     \n"
+                    ); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                }
 
-        var_info.stack_frame_idx   = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
-
-        add_local_variable_to_asm_payload(asm_payload, var_name, var_data_type, var_value);
+            case NONE_TYPE:
+                debug("error local variable type : NONE_TYPE!!\n"); abort();
+        }
     }
 }
 
@@ -229,9 +334,6 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         "\n;#========Func=Body========#\n");
 
     translate_node_to_asm_code(func_id_node->right, gl_space, asm_payload); // func_body
-
-    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-        "\n;#========Func=Body========#\n");
 
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
         ";#========End=Body=========#\n");
@@ -300,7 +402,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
 
 
     var_t local_var = get_var_from_frame(var_name_unic_id, &gl_space->var_stack, gl_space->cur_frame_ptr);
-    bool local_var_defined = !var_t_equal(local_var, POISON_VAR);
+    bool local_var_defined = !var_t_equal(local_var, POISON_VAR_T);
     // WARNING. THERE IS SHOULD BE RELOCATION!!!!!!
     symbol_t global_var_sym = get_global_variable_sym_from_name_table(&asm_payload->symbol_table, var_name); // FIXME:
     bool global_var_sym_defined = !symbol_t_equal(global_var_sym, POISON_SYMBOL);
@@ -370,11 +472,19 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
     }
 }
 
+void translate_scope(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+    assert(node);
+    assert(gl_space);
+    assert(asm_payload);
 
+    CHECK_NODE_TYPE(node, AST_SCOPE);
 
+    gl_space->cur_scope_deep++;
+    translate_node_to_asm_code(node->left, gl_space, asm_payload);
+    gl_space->cur_scope_deep--;
 
-
-
+    var_stack_remove_local_variables(&gl_space->var_stack, gl_space->cur_scope_deep);
+}
 
 
 

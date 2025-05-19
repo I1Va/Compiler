@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "sections_processing.h"
+#include "string_funcs.h"
 #include "translator_general.h"
 #include "stack_frame_proc.h"
 
@@ -52,7 +53,7 @@ var_t get_var_from_frame(int name_id, stack_t *var_stack, const int cur_frame_pt
     var_t var_info = {};
 
     if (var_stack->size == 0) {
-        return POISON_VAR;
+        return POISON_VAR_T;
     }
     for (int i = (int) var_stack->size - 1; i >= cur_frame_ptr; i--) {
         stack_get_elem(var_stack, &var_info, (size_t) i);
@@ -61,12 +62,15 @@ var_t get_var_from_frame(int name_id, stack_t *var_stack, const int cur_frame_pt
             return var_info;
         }
     }
-    return POISON_VAR;
+    return POISON_VAR_T;
 }
 
 int add_var_into_frame(var_t var, stack_t *var_stack, const int cur_frame_ptr) {
+    assert(var_stack);
+
     var_t found_var = get_var_from_frame(var.name_id, var_stack, cur_frame_ptr);
-    if (!var_t_equal(found_var, POISON_VAR)) {
+
+    if (!var_t_equal(found_var, POISON_VAR_T)) {
         dump_var_stack(stderr, var_stack);
         RAISE_TRANSLATOR_ERROR("variable '%s' redefenition", var.name);
         return -1;
@@ -85,7 +89,7 @@ int add_var_into_frame(var_t var, stack_t *var_stack, const int cur_frame_ptr) {
     return var.stack_frame_idx;
 }
 
-void var_stack_restore_old_frame(stack_t *var_stack, const int cur_frame_ptr) {
+void var_stack_remove_local_variables(stack_t *var_stack, const int cur_frame_ptr) {
     assert(var_stack);
 
     var_t last_elem = {};
@@ -94,6 +98,10 @@ void var_stack_restore_old_frame(stack_t *var_stack, const int cur_frame_ptr) {
         stack_get_elem(var_stack, &last_elem, var_stack->size - 1);
         stack_pop(var_stack);
     }
+}
+
+void var_stack_restore_old_frame(stack_t *var_stack, const int cur_frame_ptr) {
+    var_stack_remove_local_variables(var_stack, cur_frame_ptr);
 }
 
 int get_stack_frame_var_offset(stack_t *var_stack, const size_t stack_frame_idx) {

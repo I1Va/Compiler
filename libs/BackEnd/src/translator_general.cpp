@@ -13,7 +13,6 @@ static char GLOBAL_BUFER[BUFSIZ] = {};
 
 
 void var_t_fprintf(FILE *stream, void *elem_ptr) {
-
     var_t var = *(var_t *) elem_ptr;
     fprintf(stream, "LOC VAR INIT(loc_ram[%d], name='%s', id=%d, deep=%d)",
         var.stack_frame_idx, var.name, var.name_id, var.deep);

@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "FrontEnd.h"
+#include "lang_logger.h"
 #include "string_funcs.h"
 #include "lang_lexer.h"
 
@@ -58,13 +59,17 @@ bool try_parse_num(lexem_t *lexem, char *str) {
     lexem->len            = (size_t) len;
     lexem->key_word_state = false;
 
-    if (strchr(str, '.') == NULL) {
+    char *point_ptr = strchr(str, '.');
+    if (point_ptr == NULL || (point_ptr - str) > len) {
         lexem->token_type = TOKEN_NUM_INT64;
         lexem->token_val.int64_val = (int64_t) val;
     } else {
         lexem->token_type = TOKEN_NUM_DOUBLE;
         lexem->token_val.double_val = (double) val;
     }
+
+
+
 
     return true;
 }

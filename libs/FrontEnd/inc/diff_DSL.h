@@ -25,9 +25,10 @@ const multi_val_t EMPTY_MULTI_VAL = {};
 
 #define _NUM_INT64(val)                ast_tree_create_node(NULL, NULL,           {AST_NUM_INT64,   {val, 0.0f, NULL}})
 #define _NUM_DOUBLE(val)               ast_tree_create_node(NULL, NULL,           {AST_NUM_DOUBLE,  {0l, val, NULL}})
+#define _STR_LIT(str, len)             ast_tree_create_node(NULL, NULL,           {AST_STR_LIT,     {len, 0.0f, str}})
 
 #define _FUNC_ID(name, name_id)        ast_tree_create_node(NULL, NULL,           {AST_FUNC_ID,     {name_id, 0.0f, name}})
-#define _STR_LIT(str, len)             ast_tree_create_node(NULL, NULL,           {AST_STR_LIT,     {len, 0.0f, str}})
+
 #define _VAR(name, name_table_idx)     ast_tree_create_node(NULL, NULL,           {AST_VAR_ID,      {name_table_idx, 0.0f, name}})
 
 #endif // DIFF_DSL_H
