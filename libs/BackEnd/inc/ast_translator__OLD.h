@@ -109,7 +109,7 @@ void translate_if_condition(ast_tree_elem_t *node, int curr_counter);
 void translate_func_call_args(size_t *argc, ast_tree_elem_t *node);
 void translate_func_call(ast_tree_elem_t *node);
 void translate_var_init(ast_tree_elem_t *node);
-size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum ast_node_types node_type);
+size_t count_node_type_in_subtrees(ast_tree_elem_t *node, const enum ast_node_types node_type);
 void translate_return(ast_tree_elem_t *node);
 void write_asm_tittle(FILE *stream, const char tittle[], const size_t bord_sz=ASM_BORDER_SIZE);
 void fprintf_asm_border(FILE* stream, const char bord_char, const size_t bord_sz, bool new_line);

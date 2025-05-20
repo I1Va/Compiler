@@ -40,6 +40,18 @@ enum section_types {
     DATA_SECTION,
 };
 
+struct function_symbol_info {
+    data_types return_data_type;
+    size_t     args_cnt;
+    size_t     args_summary_nmemb;
+};
+
+struct variable_symbol_info {
+    data_types var_data_type;
+};
+
+const function_symbol_info POISON_FUNC_SYM_INFO = {NONE_DATA_TYPE, 0};
+const variable_symbol_info POISON_VAR_SYM_INFO  = {NONE_DATA_TYPE};
 
 struct symbol_t {
     char *sym_name;
@@ -47,10 +59,12 @@ struct symbol_t {
     symbol_binding_type sym_bind;
     section_types sym_section;
     int64_t section_offset;
-    int64_t other_info;
+
+    function_symbol_info func_sym_info;
+    variable_symbol_info var_sym_info;
 };
 
-const symbol_t POISON_SYMBOL = {NULL, NONE_TYPE_SYMBOL, NONE_BINDING, UNDEF_SECTION, -1, 0};
+const symbol_t POISON_SYMBOL = {NULL, NONE_TYPE_SYMBOL, NONE_BINDING, UNDEF_SECTION, -1, POISON_FUNC_SYM_INFO, POISON_VAR_SYM_INFO};
 
 struct symbol_table_t {
     size_t table_sz = 0;

@@ -10,6 +10,7 @@
 #include "ast_translator.h"
 #include "stack_output.h"
 #include "general.h"
+#include "string_funcs.h"
 
 // CONSTANTS
 const var_t POISON_VAR = {-1, -1, -1, NULL};
@@ -150,18 +151,18 @@ void translate_ast_to_asm_code(const char path[], ast_tree_t *tree) {
                         "hlt;\n");
 }
 
-size_t count_node_type_in_subtreeas(ast_tree_elem_t *node, const enum ast_node_types node_type) {
+size_t count_node_type_in_subtrees(ast_tree_elem_t *node, const enum ast_node_types node_type) {
     assert(node);
 
     size_t count = (node->data.ast_node_type == node_type);
 
     if (node->left) {
 
-        count += count_node_type_in_subtreeas(node->left, node_type);
+        count += count_node_type_in_subtrees(node->left, node_type);
     }
     if (node->right) {
 
-        count += count_node_type_in_subtreeas(node->right, node_type);
+        count += count_node_type_in_subtrees(node->right, node_type);
     }
 
     return count;
@@ -317,7 +318,7 @@ void translate_function_definition(ast_tree_elem_t *node) {
     translate_node_to_asm_code(node->right); //func_body;
     fprintf(asm_code_ptr, ";#========End=Body=========#\n");
 
-    size_t return_num = count_node_type_in_subtreeas(node->right, NODE_RETURN);
+    size_t return_num = count_node_type_in_subtrees(node->right, NODE_RETURN);
     void_func = func_info.return_type_num == AST_VOID;
 
     if (return_num == 0 && !void_func) {
