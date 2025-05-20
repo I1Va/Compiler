@@ -36,6 +36,19 @@ data_types convert_lexer_token_data_type(lexer_token_t token_type) {
     }
 }
 
+int get_data_type_descr(char bufer[], const size_t buf_sz, const data_types type) {
+    assert(bufer);
+    #define T_DESCR_(type) case type: return snprintf(bufer, buf_sz, "%s", #type);
+    switch (type) {
+        T_DESCR_(NONE_TYPE)
+        T_DESCR_(INT64_DATA_TYPE)
+        T_DESCR_(DOUBLE_DATA_TYPE)
+        T_DESCR_(STRING_DATA_TYPE)
+        default: return snprintf(bufer, buf_sz, "UNKNOWN_DATA_TYPE (%d)", type);
+    }
+    return 0;
+}
+
 data_types_nmemb get_data_type_nmemb(data_types data_type) {
     switch (data_type) {
         case NONE_TYPE: return NONE_TYPE_NMEMB;

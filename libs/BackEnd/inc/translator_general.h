@@ -33,14 +33,16 @@ const size_t DEFAULT_MANGLING_SUFFIX_SZ = 7;
 const size_t ASM_STACK_CELL_NMEMB = 8;
 
 struct asm_glob_space {
-    int cur_scope_deep = 0;
-    int cur_frame_ptr  = 0;
-    int while_counter  = 0;
-    int if_counter     = 0;
-    bool func_init     = false;
-    bool void_func     = false;
-    stack_t cond_stack = {};
-    stack_t var_stack  = {};
+    int cur_scope_deep  = 0;
+    int cur_frame_ptr   = 0;
+    int while_counter   = 0;
+    int if_counter      = 0;
+    bool func_init      = false;
+    bool void_func      = false;
+
+    stack_t cond_stack  = {};
+    stack_t var_stack   = {};
+    stack_t cpu_stack   = {};
 };
 
 struct var_t {
@@ -60,6 +62,7 @@ void generate_mangled_name(char bufer[], const size_t buf_sz, const char prefix[
 data_types convert_lexer_token_data_type(lexer_token_t token_type);
 data_types_nmemb get_data_type_nmemb(data_types data_type);
 void var_t_fprintf(FILE *stream, void *elem_ptr);
+int get_data_type_descr(char bufer[], const size_t buf_sz, const data_types type);
 
 
 #endif // TRANSLATOR_GENERAL_H

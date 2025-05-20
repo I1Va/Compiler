@@ -50,7 +50,7 @@ int token_write(char bufer[], const size_t buf_sz, const lexer_token_t token_typ
     #undef T_DESCR_
 }
 
-int ast_node_type_write(char bufer[], const size_t buf_sz, const ast_node_types node_type) {
+int get_ast_node_descr(char bufer[], const size_t buf_sz, const ast_node_types node_type) {
     assert(bufer);
 
     #define T_DESCR_(node_type) case node_type: return snprintf(bufer, buf_sz, "`%s`", #node_type);
@@ -78,6 +78,12 @@ int ast_node_type_write(char bufer[], const size_t buf_sz, const ast_node_types 
         default: return snprintf(bufer, buf_sz, "UNKNOWN_NODE_TYPE(%d) ", node_type); break;
     }
     #undef T_DESCR_
+}
+
+int get_multi_val_t_descr(char bufer[], const size_t buf_sz, const multi_val_t val) {
+    assert(bufer);
+
+    return snprintf(bufer, buf_sz, "{%ld %lf %s}", val.int64_val, val.double_val, val.sval);
 }
 
 void printf_multi_val_t(const char name[], const multi_val_t val) {

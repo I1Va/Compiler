@@ -22,7 +22,7 @@
 #define RAISE_TR_ERROR(str_, ...) fprintf_red(stderr, "{%s} [%s: %d]: translator_error{" str_ "}\n", __FILE_NAME__, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); abort();
 
 
-static char bufer[BUFSIZ] = {};
+static char GLOBAL_BUFER[BUFSIZ] = {};
 
 void translator_global_space_init(asm_glob_space *gl_space) {
     assert(gl_space);
@@ -38,6 +38,7 @@ void translator_global_space_init(asm_glob_space *gl_space) {
 
     STACK_INIT(&gl_space->cond_stack, 0, sizeof(int), NULL, NULL);
     STACK_INIT(&gl_space->var_stack, 0, sizeof(var_t), NULL, NULL);
+    STACK_INIT(&gl_space->cpu_stack, 0, sizeof(cpu_stack_elem_t), NULL, NULL);
 }
 
 void translator_global_space_clear(asm_glob_space *gl_space) {
@@ -45,6 +46,7 @@ void translator_global_space_clear(asm_glob_space *gl_space) {
 
     stack_destroy(&gl_space->var_stack);
     stack_destroy(&gl_space->cond_stack);
+    stack_destroy(&gl_space->cpu_stack);
 }
 
 void dump_asm_payload_to_file(const char path[], asm_payload_t *asm_payload) {
@@ -100,21 +102,10 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
 
         // case NODE_OP: translate_op(node);
         //     break;
-        // case NODE_TYPE: fprintf_red(stdout, "there is should be <NODE_TYPE> translation\n");
-        //     break;
         // case NODE_ASSIGN: translate_assign(node);
-        //     break;
-        // case NODE_FUNC_ID: RAISE_TR_ERROR(
-        //     "<NODE_FUNC_ID> should be processed in"
-        //     "<translate_func_call/translate_function_definition>")
         //     break;
         // case NODE_CALL: translate_func_call(node);
         //     break;
-        // case NODE_ELSE: RAISE_TR_ERROR(
-        //     "<NODE_ELSE> should be processed in"
-        //     "<translate_if>")
-        //     break;
-
         // case NODE_RETURN: translate_return(node);
         //     break;
         // case NODE_BREAK: fprintf_red(stdout, "there is should be <NODE_BREAK> translation");
@@ -125,17 +116,26 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         //     break;
         // case NODE_IF: translate_if(node);
         //     break;
-        // case NODE_COMMA: RAISE_TR_ERROR(
-        //     "<NODE_COMMA> should be processed in"
-        //     "<translate_func_call>/<translate_func_args_init>")
-        //     break;
-        // case NODE_STR_LIT: translate_string_literal(node);
-        //     break;
-        // case NODE_EMPTY: RAISE_TR_ERROR("incorrect AST: <NODE_EMPTY>")
-        //     break;
-        // default: RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%d)>", node->data.ast_node_type)
-        //     break;
 
+        case AST_FUNC_ID: RAISE_TR_ERROR(
+            "<NODE_FUNC_ID> should be processed in"
+            "<translate_func_call/translate_function_definition>")
+            break;
+
+        case AST_ELSE: RAISE_TR_ERROR(
+            "<NODE_ELSE> should be processed in"
+            "<translate_if>")
+            break;
+
+        case AST_COMMA: RAISE_TR_ERROR(
+            "<AST_COMMA> should be processed in"
+            "<translate_func_call>/<translate_func_args_init>")
+            break;
+
+        case AST_TYPE: RAISE_TR_ERROR("incorrect AST: <AST_TYPE>"); break;
+        default:
+            get_ast_node_descr(GLOBAL_BUFER, BUFSIZ, node->data.ast_node_type);
+            RAISE_TR_ERROR("incorrect AST: <UNKNOWN_NODE(%s)>", GLOBAL_BUFER); break;
     }
 }
 
@@ -153,29 +153,34 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "push   %ld;// push int64 constant\n",
             node->data.value.int64_val)
+
+            cpu_stack_push_constant(&gl_space->cpu_stack, INT64_DATA_TYPE, node->data.value);
             return;
         case AST_NUM_DOUBLE:
-            generate_mangled_name(bufer, BUFSIZ, "double_constant_", DEFAULT_MANGLING_SUFFIX_SZ);
-            add_global_variable_record_to_data_section(asm_payload, bufer, DOUBLE_DATA_TYPE, node->data.value);
+            generate_mangled_name(GLOBAL_BUFER, BUFSIZ, "double_constant_", DEFAULT_MANGLING_SUFFIX_SZ);
+            add_global_variable_record_to_data_section(asm_payload, GLOBAL_BUFER, DOUBLE_DATA_TYPE, node->data.value);
 
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "movdqu xmm1, [%s];//                     \n"
                 "sub    rsp, 16   ;// push double constant\n"
                 "movdqu [rsp] xmm1;//                     \n",
-                bufer)
+                GLOBAL_BUFER)
+
+            cpu_stack_push_constant(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, node->data.value);
             return;
         case AST_STR_LIT:
-            generate_mangled_name(bufer, BUFSIZ, "str_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
-            add_global_variable_record_to_data_section(asm_payload, bufer, STRING_DATA_TYPE, node->data.value);
+            generate_mangled_name(GLOBAL_BUFER, BUFSIZ, "str_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
+            add_global_variable_record_to_data_section(asm_payload, GLOBAL_BUFER, STRING_DATA_TYPE, node->data.value);
 
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "lea    rbx, %s;//                     \n"
                 "push   rbx    ;// push double constant\n",
-                bufer)
+                GLOBAL_BUFER)
+            cpu_stack_push_constant(&gl_space->cpu_stack, STRING_DATA_TYPE, node->data.value);
             return;
         default:
-            ast_node_type_write(bufer, BUFSIZ, node->data.ast_node_type);
-            RAISE_TR_ERROR("error : `%s` isn't constant type\n", bufer)
+            get_ast_node_descr(GLOBAL_BUFER, BUFSIZ, node->data.ast_node_type);
+            RAISE_TR_ERROR("error : `%s` isn't constant type\n", GLOBAL_BUFER)
     }
 }
 
@@ -203,11 +208,9 @@ void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char
     // WARNING------------------------------------
     global_var_sym.section_offset = -1; // FIXME:
     // WARNING------------------------------------
-    global_var_sym.other_info = get_data_type_nmemb(var_data_type);
+    global_var_sym.other_info = var_data_type;
 
     add_symbol_to_name_table(&asm_payload->symbol_table, global_var_sym);
-
-
 
     switch (var_data_type) {
         case INT64_DATA_TYPE    :  MAKE_RECORD_IN_DATA_SECTION(asm_payload, "\tdq %s: %ld\n", var_name, var_value.int64_val) return;
@@ -256,11 +259,21 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                         "mov    rbx, [rsp];// get access to stack last value (for assignment)\n"
                         "add    rsp, 8    ;// remove last value stack value                  \n"
                         "push   rbx       ;// save new local variable `%s` on stack          \n",
-                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    var_name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    if (!cpu_stack_pop_constant(&gl_space->cpu_stack, INT64_DATA_TYPE)) RAISE_TR_ERROR("failed to cpu_stack_pop_constant\n");
+                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, var_name, CPU_STACK_VAR_VALUE);
+                    return;
+
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 8    ;// reserve satck space for new local variable `%s`     \n",
-                    var_info.name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    var_info.name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, var_name, CPU_STACK_UNINITIALIZED_VAR);
+                    return;
                 }
 
             case DOUBLE_DATA_TYPE:
@@ -270,11 +283,21 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                         "add    rsp, 16    ;// remove last value from stack                     \n"
                         "sub    rsp, 16    ;// reserve stack space for new local variable `%s`  \n"
                         "movdqu [rsp], xmm1;//  save new local variable on stack                \n",
-                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    var_name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    if (!cpu_stack_pop_constant(&gl_space->cpu_stack, DOUBLE_DATA_TYPE)) RAISE_TR_ERROR("failed to cpu_stack_pop_constant\n");
+                    cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, var_name, CPU_STACK_VAR_VALUE);
+                    return;
+
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 16    ;// reserve stack space for new local variable `%s`  \n",
-                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    var_name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, var_name, CPU_STACK_UNINITIALIZED_VAR);
+                    return;
                 }
 
             case STRING_DATA_TYPE: // Для указателя на строковый литерал создаем строковый литерал в секции .data
@@ -282,11 +305,20 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "lea    rbx, %s;// get access to global string literal (for assignment)\n"
                         "push   rbx    ;// save new local variable `%s` on stack               \n",
-                    bufer, var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    GLOBAL_BUFER, var_name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, var_name, CPU_STACK_VAR_VALUE);
+                    return;
+
                 } else {
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 8    ;// reserve stack space for new local variable `%s`  \n",
-                    var_name); add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr); return;
+                    var_name);
+
+                    add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, var_name, CPU_STACK_UNINITIALIZED_VAR);
+                    return;
                 }
 
             case NONE_TYPE:
@@ -323,11 +355,14 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         "mov   rbp, rsp \n"
         ";#=======End=Action========#\n",
         func_symbol.sym_name);
+    cpu_stack_push_base_pointer(&gl_space->cpu_stack);
 
     ast_tree_elem_t *func_id_node = node->right;
     CHECK_NODE_TYPE(func_id_node, AST_FUNC_ID)
 
-    if (func_id_node->left) func_symbol.other_info = (int64_t) translate_func_args_init(func_id_node->left, gl_space, asm_payload);
+    if (func_id_node->left) func_symbol.other_info = (int64_t)
+        translate_func_args_init(func_id_node->left, gl_space, asm_payload);
+
     add_symbol_to_name_table(&asm_payload->symbol_table, func_symbol);
 
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
@@ -355,6 +390,8 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         ";#=======End=Function======#\n",
         func_symbol.sym_name);
 
+    if (!cpu_stack_pop_base_pointer(&gl_space->cpu_stack)) RAISE_TR_ERROR("failed to pop base pointer") // NOTE: если возникает данная ошибка, то проверьте корректность заполнения cpu_stack при трансляции тела функции
+
     var_stack_restore_old_frame(&gl_space->var_stack, gl_space->cur_frame_ptr); // call stack loc vars clearing + restore old_frame
 }
 
@@ -380,10 +417,17 @@ size_t translate_func_args_init(ast_tree_elem_t *node, asm_glob_space *gl_space,
     var_info.deep               = gl_space->cur_scope_deep + 1; // + 1 т.к. переменная инициализируется уже внутри скойпа функции
     var_info.name               = var_init_node->right->data.value.sval;
     var_info.stack_frame_idx    = add_var_into_frame(var_info, &gl_space->var_stack, gl_space->cur_frame_ptr);
+    cpu_stack_push_variable(&gl_space->cond_stack, var_info.var_data_type, var_info.name, CPU_STACK_UNINITIALIZED_VAR);
 
     args_nmemb += var_info.var_data_nmemb;
 
-    if (!node->left) return args_nmemb;
+    if (!node->left) {
+        MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+            "sub    rsp, %lu\n",
+            args_nmemb)
+        return args_nmemb;
+    }
+
     return 0;
 }
 
@@ -395,10 +439,6 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
 
     char *var_name = node->data.value.sval;             // строка хранится в string_storage, определенном в main.cpp
     int var_name_unic_id = node->data.value.int64_val;  // идентификатор стэкового фрэйма
-
-    // На случай, если переменная глобальная:
-
-
 
 
     var_t local_var = get_var_from_frame(var_name_unic_id, &gl_space->var_stack, gl_space->cur_frame_ptr);
@@ -424,6 +464,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "mov    rbx, [rbp + %d]; // access to local int64 '%s'  \n"
                     "push   rbx                                             \n",
                     var_stack_frame_offset + 16, local_var.name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case DOUBLE_DATA_TYPE:
@@ -433,6 +474,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "movdqu [rsp], xmm1 // access to local double '%s'  \n",
                     var_stack_frame_offset + 16, local_var.name
                 )
+                cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case STRING_DATA_TYPE: RAISE_TR_ERROR("error STRING_DATA_TYPE\n");
@@ -449,6 +491,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "mov    rbx, [%s]; // access to global int64 '%s'   \n"
                     "push   rbx                                         \n",
                     global_var_sym.sym_name, global_var_sym.sym_name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case DOUBLE_DATA_TYPE:
@@ -456,8 +499,8 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "movdqu xmm1, [%s]                                  \n"
                     "sub    rsp, 16                                     \n"
                     "movdqu [rsp], xmm1 // access to global double '%s' \n",
-                     global_var_sym.sym_name, global_var_sym.sym_name
-                )
+                     global_var_sym.sym_name, global_var_sym.sym_name)
+                cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case STRING_DATA_TYPE:
@@ -465,6 +508,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "lea    rbx, %s; // access to global string '%s'    \n"
                     "push   rbx                                         \n",
                     global_var_sym.sym_name, global_var_sym.sym_name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case NONE_TYPE: RAISE_TR_ERROR("error NONE_TYPE\n");
@@ -486,11 +530,52 @@ void translate_scope(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payloa
     var_stack_remove_local_variables(&gl_space->var_stack, gl_space->cur_scope_deep);
 }
 
+void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+//     assert(node);
+//     assert(gl_space);
+//     assert(asm_payload);
+
+
+//     if (node->data.ast_node_type == AST_NUM_INT64   ||
+//         node->data.ast_node_type == AST_NUM_DOUBLE  ||
+//         node->data.ast_node_type == AST_STR_LIT) {
+//             translate_constant(node, gl_space, asm_payload); return;
+//     } else if (node->data.ast_node_type == AST_VAR_ID) {
+//         translate_var_identifier(node, gl_space, asm_payload); return;
+//     } else if (node->data.ast_node_type == AST_CALL) {
+//         translate_func_call(node);
+//         return;
+//     }
+
+
+//     CHECK_NODE_TYPE(node, AST_OPERATION);
+//     translate_op(node->right);
+//     translate_op(node->left);
+
+//     switch (node->data.value.int64_val) {
+//         case TOKEN_ADD:
 
 
 
 
+//         // fprintf(asm_code_ptr, "add;\n"); break;
 
+
+
+//         // case AST_MUL: fprintf(asm_code_ptr, "mult;\n"); break;
+//         // case AST_SUB: fprintf(asm_code_ptr, "sub;\n"); break;
+//         // case AST_DIV: fprintf(asm_code_ptr, "div;\n"); break;
+//         // case AST_LESS: fprintf(asm_code_ptr, "less;\n"); break;
+//         // case AST_LESS_EQ: fprintf(asm_code_ptr, "lesseq;\n"); break;
+//         // case AST_MORE: fprintf(asm_code_ptr, "more;\n"); break;
+//         // case AST_MORE_EQ: fprintf(asm_code_ptr, "moreeq;\n"); break;
+//         // case AST_EQ: fprintf(asm_code_ptr, "eq;\n"); break;
+//         // default:
+//         //     debug("translate_op UNKNOWN_OP(%d)", node->data.value.ival);
+//         //     fprintf(asm_code_ptr, "UNKNOWN_OP(%d);\n", node->data.value.ival);
+//         // break;
+//     }
+}
 
 
 
