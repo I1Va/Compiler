@@ -20,6 +20,7 @@ void add_local_variable_init_with_assignment_to_asm_payload(asm_payload_t *asm_p
 void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
+void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 
 
 #endif // AST_TRANSLATOR_H

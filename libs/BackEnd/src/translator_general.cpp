@@ -5,6 +5,7 @@
 #include "FrontEnd.h"
 #include "general.h"
 #include "lang_logger.h"
+#include "sections_processing.h"
 #include "string_funcs.h"
 #include "stack_output.h"
 #include "translator_general.h"

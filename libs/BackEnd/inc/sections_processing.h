@@ -85,5 +85,6 @@ int get_symbol_idx_in_name_table(symbol_table_t *symbol_table, const symbol_t sy
 void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol);
 symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, char *sym_name);
 
+void dump_symbol_table_t(FILE *stream, symbol_table_t *symbol_table);
 
 #endif // SECTIONS_PROCESSING_H

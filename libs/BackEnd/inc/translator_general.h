@@ -78,5 +78,4 @@ int get_data_type_descr(char bufer[], const size_t buf_sz, const data_types type
 void dump_var_stack(FILE *stream, stack_t *var_stack);
 int get_var_type_t_descr(char bufer[], const size_t buf_sz, const var_type_t type);
 
-
 #endif // TRANSLATOR_GENERAL_H

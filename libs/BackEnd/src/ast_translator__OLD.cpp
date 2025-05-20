@@ -156,14 +156,9 @@ size_t count_node_type_in_subtrees(ast_tree_elem_t *node, const enum ast_node_ty
 
     size_t count = (node->data.ast_node_type == node_type);
 
-    if (node->left) {
+    if (node->left) count += count_node_type_in_subtrees(node->left, node_type);
+    if (node->right) count += count_node_type_in_subtrees(node->right, node_type);
 
-        count += count_node_type_in_subtrees(node->left, node_type);
-    }
-    if (node->right) {
-
-        count += count_node_type_in_subtrees(node->right, node_type);
-    }
 
     return count;
 }

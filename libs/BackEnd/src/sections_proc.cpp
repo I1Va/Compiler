@@ -28,6 +28,8 @@ void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol) {
         RAISE_TRANSLATOR_ERROR("function '%s' redefenition", symbol.sym_name);
         return;
     }
+
+    symbol_table->data[symbol_table->table_sz++] = symbol;
 };
 
 symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, char *sym_name) {
@@ -37,8 +39,17 @@ symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, c
     for (size_t i = 0; i < symbol_table->table_sz; i++) {
         symbol_t cur_sym = symbol_table->data[i];
 
-        if (strncmp(sym_name, cur_sym.sym_name, MAX_SYMBOL_NAME_SZ) == 0 && cur_sym.sym_type == VARIABLE_SYMBOL) return cur_sym;
+        if (strncmp(sym_name, cur_sym.sym_name, MAX_SYMBOL_NAME_SZ) == 0
+            && cur_sym.sym_type == VARIABLE_SYMBOL) return cur_sym;
     }
 
     return POISON_SYMBOL;
+}
+
+void dump_symbol_table_t(FILE *stream, symbol_table_t *symbol_table) {
+    fprintf_title(stream, "SYMBOL_TABLE", '=', STR_F_BORDER_SZ);
+    for (size_t i = 0; i < symbol_table->table_sz; i++) {
+        printf("symbol_table[%lu] = %s\n", i, symbol_table->data[i].sym_name);
+    }
+    fprintf_border(stream, '=', STR_F_BORDER_SZ, true);
 }

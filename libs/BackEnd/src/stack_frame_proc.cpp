@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <climits>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -69,6 +70,37 @@ void cpu_stack_push_constant(stack_t *cpu_stack, const data_types data_type, con
     cur_cpu_stack_elem.data_value = val;
 
     stack_push(cpu_stack, &cur_cpu_stack_elem);
+}
+
+bool cpu_stack_pop_local_variable(stack_t *cpu_stack, const data_types data_type) {
+    assert(cpu_stack);
+
+    if (cpu_stack->size == 0) {
+        debug("cpu_stack->size == 0\n");
+        return false;
+    }
+
+    cpu_stack_elem_t last_elem = {};
+    stack_get_elem(cpu_stack, &last_elem, cpu_stack->size - 1);
+    if (!(last_elem.stack_elem_type == CPU_STACK_VAR_VALUE || last_elem.stack_elem_type == CPU_STACK_UNINITIALIZED_VAR)) {
+        get_cpu_stack_elem_type_descr(GLOBAL_BUFER, BUFSIZ, last_elem.stack_elem_type);
+        debug("(cpu_stack_elem_types) -> expected : CPU_STACK_VAR_VALUE|CPU_STACK_UNINITIALIZED_VAR, got : {%s}", GLOBAL_BUFER);
+        dump_cpu_stack(stderr, cpu_stack);
+        return false;
+    }
+
+    if (last_elem.data_type != data_type) {
+        int bufer_offset = get_data_type_descr(GLOBAL_BUFER, BUFSIZ, data_type);
+        get_data_type_descr(GLOBAL_BUFER + bufer_offset + 1, BUFSIZ, last_elem.data_type);
+        debug("(data_types) -> expected : {%s}, got : {%s}", GLOBAL_BUFER, GLOBAL_BUFER + bufer_offset + 1);
+
+        dump_cpu_stack(stderr, cpu_stack);
+        return false;
+    }
+
+    stack_pop(cpu_stack);
+
+    return true;
 }
 
 bool cpu_stack_pop_value_for_variable(stack_t *cpu_stack, const data_types data_type) {
@@ -173,10 +205,6 @@ bool cpu_stack_pop_base_pointer(stack_t *cpu_stack) {
 
     cpu_stack_elem_t last_elem = {};
     stack_get_elem(cpu_stack, &last_elem, cpu_stack->size - 1);
-    stack_pop(cpu_stack);
-
-
-
 
     if (last_elem.stack_elem_type != CPU_STACK_BASE_POINTER) {
         get_cpu_stack_elem_type_descr(GLOBAL_BUFER, BUFSIZ, last_elem.stack_elem_type);
@@ -194,8 +222,9 @@ bool cpu_stack_pop_base_pointer(stack_t *cpu_stack) {
 
 
 
-static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int cur_frame_ptr) {
+static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int cur_scope_deep) {
     assert(var_stack);
+    assert(cur_scope_deep >= 0);
 
     if (var_stack->size == 0) return false;
 
@@ -203,7 +232,7 @@ static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int c
 
     bool meet_local_var_in_frame = false;
 
-    for (int i = cur_frame_ptr; i < var_stack->size; i++) {
+    for (int i = cur_scope_deep; i < var_stack->size; i++) {
         stack_get_elem(var_stack, &cur_var, (size_t) i);
 
         meet_local_var_in_frame |= (cur_var.var_type == VAR_TYPE_LOCAL_VAR);
@@ -213,16 +242,18 @@ static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int c
     return meet_local_var_in_frame;
 }
 
-bool check_name_id_in_cur_frame(int name_id, stack_t *var_stack, const int cur_frame_ptr) {
-    assert(var_stack);
+bool check_name_id_in_cur_scope(int name_id, stack_t *var_stack, const int cur_scope_deep) {
+     assert(var_stack);
 
     if (var_stack->size == 0) return false;
 
     var_t cur_var = {};
-    for (int i = cur_frame_ptr; i < var_stack->size; i++) {
-        stack_get_elem(var_stack, &cur_var, (size_t) i);
+    cur_var.deep = -1;
 
+    for (int i = var_stack->size - 1; i >= 0 && cur_var.deep <= cur_scope_deep; i--) {
+        stack_get_elem(var_stack, &cur_var, (size_t) i);
         if (cur_var.name_id == name_id) return true;
+
     }
 
     return false;
@@ -300,61 +331,65 @@ bool symbol_t_equal(const symbol_t v1, const symbol_t v2) {
 }
 
 
-void add_func_arg_into_frame(var_t var, stack_t *var_stack, const int cur_frame_ptr, bool first_arg_in_rev_order) {
-    assert(var_stack);
+void add_func_arg_into_frame(var_t var, asm_glob_space *gl_space, bool first_arg_in_rev_order) {
+    assert(gl_space);
 
-    if (check_name_id_in_cur_frame(var.name_id, var_stack, cur_frame_ptr)) {
-        dump_var_stack(stderr, var_stack);
+    if (check_name_id_in_cur_scope(var.name_id, &gl_space->var_stack, gl_space->cur_scope_deep)) {
+        dump_var_stack(stderr, &gl_space->var_stack);
         RAISE_TRANSLATOR_ERROR("variable '%s' redefenition", var.name);
         return;
     }
-    if (check_locals_untill_var(var.name_id, var_stack, cur_frame_ptr) && var.var_type == VAR_TYPE_FUNCTION_ARG) {
-        RAISE_TRANSLATOR_ERROR("met local vars in stack frame before func arg `%s`", var.name)
+    if (check_locals_untill_var(var.name_id, &gl_space->var_stack, gl_space->cur_scope_deep)
+        && var.var_type == VAR_TYPE_FUNCTION_ARG) {
+            RAISE_TRANSLATOR_ERROR("met local vars in stack frame before func arg `%s`", var.name)
     }
 
     if (!first_arg_in_rev_order) {
-        assert(var_stack->size > 0);
+        assert(gl_space->var_stack.size > 0);
 
         var_t last_arg_var = {};
-        stack_get_elem(var_stack, &last_arg_var, var_stack->size - 1);
+        stack_get_elem(&gl_space->var_stack, &last_arg_var, gl_space->var_stack.size - 1);
 
         var.base_pointer_offset = last_arg_var.base_pointer_offset - var.var_data_nmemb;
     }
 
-    stack_push(var_stack, &var);
+    stack_push(&gl_space->var_stack, &var);
 }
 
-void add_local_var_into_frame(var_t var, stack_t *var_stack, const int cur_frame_ptr) {
-    assert(var_stack);
+void add_local_var_into_frame(var_t var, asm_glob_space *gl_space) {
+    assert(gl_space);
 
-    if (check_name_id_in_cur_frame(var.name_id, var_stack, cur_frame_ptr)) {
-        dump_var_stack(stderr, var_stack);
+    if (check_name_id_in_cur_scope(var.name_id, &gl_space->var_stack, gl_space->cur_scope_deep)) {
+        dump_var_stack(stderr, &gl_space->var_stack);
         RAISE_TRANSLATOR_ERROR("variable '%s' redefenition", var.name);
         return;
     }
 
-    if (var_stack->size) {
+    if (gl_space->var_stack.size) {
         var_t prev_var = {};
-        stack_get_elem(var_stack, &prev_var, var_stack->size - 1);
+        stack_get_elem(&gl_space->var_stack, &prev_var, gl_space->var_stack.size - 1);
         var.base_pointer_offset = prev_var.base_pointer_offset - var.var_data_nmemb;
     } else {
         var.base_pointer_offset = 0 - (int) var.var_data_nmemb;
     }
 
-    stack_push(var_stack, &var);
+    stack_push(&gl_space->var_stack, &var);
 }
 
-void var_stack_remove_local_variables(stack_t *var_stack, const int cur_scope_deep) {
-    assert(var_stack);
+bool var_stack_remove_local_variables(asm_glob_space *gl_space) {
+    assert(gl_space);
 
-    if (!var_stack->size) return;
+    if (gl_space->var_stack.size == 0) return true;
 
     var_t last_elem = {};
-    stack_get_elem(var_stack, &last_elem, var_stack->size - 1);
-    while (last_elem.deep > cur_scope_deep && var_stack->size) {
-        stack_get_elem(var_stack, &last_elem, var_stack->size - 1);
-        stack_pop(var_stack);
+    last_elem.deep = INT_MAX;
+
+    while (last_elem.deep > gl_space->cur_scope_deep && gl_space->var_stack.size) {
+        stack_get_elem(&gl_space->var_stack, &last_elem, gl_space->var_stack.size - 1);
+        stack_pop(&gl_space->var_stack);
     }
+
+    return true;
 }
 
 // int get_stack_frame_var_offset(stack_t *var_stack, const size_t stack_frame_idx) {
