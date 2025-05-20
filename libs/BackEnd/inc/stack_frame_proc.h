@@ -46,7 +46,7 @@ bool variable_symbol_info_equal(const variable_symbol_info v1, const variable_sy
 var_t get_var_from_frame(int name_id, stack_t *var_stack, const int cur_scope_deep);
 bool var_stack_remove_local_variables(asm_glob_space *gl_space);
 
-void add_local_var_into_frame(var_t var, asm_glob_space *gl_space);
+int add_local_var_into_frame(var_t var, asm_glob_space *gl_space);
 void add_func_arg_into_frame(var_t var, asm_glob_space *gl_space, bool first_arg_in_rev_order_state);
 
 

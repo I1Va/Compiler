@@ -356,16 +356,32 @@ void add_func_arg_into_frame(var_t var, asm_glob_space *gl_space, bool first_arg
     stack_push(&gl_space->var_stack, &var);
 }
 
-void add_local_var_into_frame(var_t var, asm_glob_space *gl_space) {
+bool check_local_vars_in_frame(asm_glob_space *gl_space) {
+    assert(gl_space);
+
+    for (size_t i = 0; i < gl_space->var_stack.size; i++) {
+        var_t cur_var = {};
+
+        stack_get_elem(&gl_space->var_stack, &cur_var, i);
+        if (cur_var.deep <= gl_space->cur_scope_deep) {
+            if (cur_var.var_type == VAR_TYPE_LOCAL_VAR) return true;
+        } else {
+            break;
+        }
+    }
+    return false;
+}
+
+int add_local_var_into_frame(var_t var, asm_glob_space *gl_space) {
     assert(gl_space);
 
     if (check_name_id_in_cur_scope(var.name_id, &gl_space->var_stack, gl_space->cur_scope_deep)) {
         dump_var_stack(stderr, &gl_space->var_stack);
         RAISE_TRANSLATOR_ERROR("variable '%s' redefenition", var.name);
-        return;
+        return 0;
     }
 
-    if (gl_space->var_stack.size) {
+    if (check_local_vars_in_frame(gl_space)) {
         var_t prev_var = {};
         stack_get_elem(&gl_space->var_stack, &prev_var, gl_space->var_stack.size - 1);
         var.base_pointer_offset = prev_var.base_pointer_offset - var.var_data_nmemb;
@@ -374,6 +390,8 @@ void add_local_var_into_frame(var_t var, asm_glob_space *gl_space) {
     }
 
     stack_push(&gl_space->var_stack, &var);
+
+    return var.base_pointer_offset;
 }
 
 bool var_stack_remove_local_variables(asm_glob_space *gl_space) {

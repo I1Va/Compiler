@@ -258,8 +258,8 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
         var_info.name_id                = var_id;
         var_info.name                   = var_name;
         var_info.deep                   = gl_space->cur_scope_deep;
-        var_info.base_pointer_offset    = UNKNOWN_BASE_POINTER_OFFSET;
         var_info.var_type               = VAR_TYPE_LOCAL_VAR;
+        var_info.base_pointer_offset    = add_local_var_into_frame(var_info, gl_space);
 
         switch (var_data_type) {
             case INT64_DATA_TYPE:
@@ -267,10 +267,8 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     get_var_type_t_descr(GLOBAL_BUFER, BUFSIZ, var_info.var_type);
 
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        ";// save new %s int64 variable `%s` on stack       \n",
-                    GLOBAL_BUFER, var_name);
-
-                    add_local_var_into_frame(var_info, gl_space);
+                        ";+ save new %s int64 variable `%s` on stack [rbp + %d]\n",
+                    GLOBAL_BUFER, var_name, var_info.base_pointer_offset);
                     return;
 
                 } else {
@@ -279,20 +277,19 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 8    ;// reserve stack space for new %s int64 variable `%s`\n",
                     GLOBAL_BUFER, var_info.name);
-
-                    add_local_var_into_frame(var_info, gl_space);
                     return;
                 }
 
             case DOUBLE_DATA_TYPE:
             if (with_assignment) {
+
+                add_local_var_into_frame(var_info, gl_space);
                     get_var_type_t_descr(GLOBAL_BUFER, BUFSIZ, var_info.var_type);
-
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                        ";// save ne %s double variable `%s`  \n",
-                    GLOBAL_BUFER, var_name);
+                        ";+ save new %s double variable `%s` on stack [rbp + %d]\n",
+                    GLOBAL_BUFER, var_name, var_info.base_pointer_offset);
 
-                    add_local_var_into_frame(var_info, gl_space);
+
                     return;
 
                 } else {
@@ -301,8 +298,6 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 16    ;// reserve stack space for new %s double variable `%s`\n",
                     GLOBAL_BUFER, var_name);
-
-                    add_local_var_into_frame(var_info, gl_space);
                     return;
                 }
 
@@ -313,8 +308,6 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         ";// save new %s str_lit variable `%s` on stack          \n",
                     GLOBAL_BUFER, var_name);
-
-                    add_local_var_into_frame(var_info, gl_space);
                     return;
                 } else {
                     get_var_type_t_descr(GLOBAL_BUFER, BUFSIZ, var_info.var_type);
@@ -322,8 +315,6 @@ void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "sub    rsp, 8    ;// reserve stack space for new %s str_lit variable `%s`  \n",
                     GLOBAL_BUFER, var_name);
-
-                    add_local_var_into_frame(var_info, gl_space);
                     return;
                 }
             case VOID_DATA_TYPE:
