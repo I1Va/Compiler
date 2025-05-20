@@ -74,6 +74,7 @@ void translate_ast_to_asm_code(ast_tree_t *tree) {
     asm_glob_space gl_space = {}; translator_global_space_init(&gl_space);
     asm_payload_t asm_payload = {};
 
+
     translate_node_to_asm_code(tree->root, &gl_space, &asm_payload);
     dump_asm_payload_to_file("./testing_space/code.txt", &asm_payload);
 
@@ -88,6 +89,13 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
     assert(node);
     assert(gl_space);
     assert(asm_payload);
+
+    static bool first_launch_state = true;
+    if (first_launch_state) {
+        MAKE_RECORD_IN_DATA_SECTION(asm_payload,
+            "\tglobal main\n")
+        first_launch_state = false;
+    }
 
     switch (node->data.ast_node_type) {
         case AST_SEMICOLON: translate_semicolon(node, gl_space, asm_payload); break;
@@ -111,21 +119,20 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
             translate_return_node(node, gl_space, asm_payload); break;
         case AST_CALL: translate_func_call(node, gl_space, asm_payload); break;
 
-        case AST_OPERATION: translate_operation(node, gl_space, asm_payload);
-            break;
+        case AST_OPERATION: translate_operation(node, gl_space, asm_payload); break;
 
-        // case NODE_ASSIGN: translate_assign(node);
-        //     break;
+        case AST_IF: translate_if(node, gl_space, asm_payload); break;
 
-        // case NODE_RETURN: translate_return(node);
-        //     break;
         // case NODE_BREAK: fprintf_red(stdout, "there is should be <NODE_BREAK> translation");
         //     break;
         // case NODE_CONTINUE: fprintf_red(stdout, "there is should be <NODE_CONTINUE> translation");
         //     break;
         // case NODE_WHILE: translate_while(node);
         //     break;
-        // case NODE_IF: translate_if(node);
+
+
+
+        // case NODE_ASSIGN: translate_assign(node);
         //     break;
 
         case AST_FUNC_ID: RAISE_TR_ERROR(
@@ -368,7 +375,6 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         func_symbol.func_sym_info.args_summary_nmemb =
         (int64_t) translate_func_args_init(func_id_node->left, gl_space, asm_payload);
     }
-
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
         "\n;#=========Function========#\n"
         "%s:\n"
@@ -457,7 +463,7 @@ size_t translate_func_args_init(ast_tree_elem_t *node, asm_glob_space *gl_space,
     farg_var.var_type               = VAR_TYPE_FUNCTION_ARG;
 
     if (first_arg_in_rev_order) {
-        farg_var.base_pointer_offset = (int) args_summary_nmemb + 8 - farg_var.var_data_nmemb;
+        farg_var.base_pointer_offset = (int) args_summary_nmemb + FARGS_RBP_OFFSET - farg_var.var_data_nmemb;
         add_func_arg_into_frame(farg_var, gl_space, first_arg_in_rev_order);
         first_arg_in_rev_order = false;
     } else {
@@ -494,6 +500,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
         RAISE_TR_ERROR("cur_deep : {%d}, var '%s' not initialized", gl_space->cur_scope_deep, var_name);
         return;
     }
+
     // WARNING. THERE IS SHOULD BE RELOCATION!!!!!! FIXME:
     if (local_var_defined) {
         switch (local_var.var_data_type) {
@@ -513,7 +520,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "movdqu xmm1, [rbp + %d]                            \n"
                     "sub    rsp, 16                                     \n"
                     "movdqu [rsp], xmm1 // access to %s double '%s'  \n",
-                    local_var.base_pointer_offset + 16, GLOBAL_BUFER, local_var.name
+                    local_var.base_pointer_offset, GLOBAL_BUFER, local_var.name
                 )
                 return;
 
@@ -613,22 +620,40 @@ void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
 
     data_types args_data_type = arg_left.data_type; assert(arg_left.data_type == arg_right.data_type);
 
-    switch ((lexer_token_t) node->data.value.int64_val) {
-        case TOKEN_ADD:
-            switch (args_data_type) {
-                case INT64_DATA_TYPE:
-                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+    if (args_data_type == INT64_DATA_TYPE) {
+        switch ((lexer_token_t) node->data.value.int64_val) {
+            case TOKEN_ADD:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "pop    rbx     \n"
                         "pop    rcx     \n"
                         "add    rbx, rcx\n"
                         "push   rbx     \n")
-                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
-                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
-                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
-                    return;
 
-                case DOUBLE_DATA_TYPE:
-                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
+                return;
+            case TOKEN_SUB:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "pop    rbx     \n"
+                        "pop    rcx     \n"
+                        "sub    rbx, rcx\n"
+                        "push   rbx     \n")
+
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
+                return;
+
+
+            default: break;
+        }
+    }
+
+    if (args_data_type == DOUBLE_DATA_TYPE) {
+        switch ((lexer_token_t) node->data.value.int64_val) {
+            case TOKEN_ADD:
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                         "movdqu xmm1, [rsp]\n"
                         "add    rsp, 16    \n"
                         "movdqu xmm2, [rsp]\n"
@@ -636,14 +661,18 @@ void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
                         "addpd  xmm1, xmm2 \n"
                         "sub    rsp, 16    \n"
                         "movdqu [rsp], xmm1\n")
-                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
-                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
-                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
-                    return;
-                default: break;
-            }
-        default: break;
+
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
+                return;
+
+            default: break;
+        }
     }
+
+
+
 
     int token_offset = 0;
     int data_type_offset = 1 + token_write(GLOBAL_BUFER, BUFSIZ, (lexer_token_t) node->data.value.int64_val);
@@ -862,6 +891,83 @@ void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_
     if (gl_space->cur_func_name == NULL) RAISE_TRANSLATOR_ERROR("return located out from function");
 
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "jmp   %s%s\n", gl_space->cur_func_name, FUNCTION_LEAVE_SUFFIX)
+}
+
+
+void translate_if(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
+    assert(node);
+    CHECK_NODE_TYPE(node, AST_IF);
+
+    int save_counter = 0;
+    ast_tree_elem_t *node_cond = node->left;
+    node = node->right; // else_node
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        ";#=============If==========#\n"
+        "jmp if_check_%d\n"
+        "if_start_%d:    \n",
+        gl_space->if_counter, gl_space->if_counter);
+
+
+    stack_push(&gl_space->cond_stack, &gl_space->if_counter);
+    stack_push(&gl_space->cond_stack, &gl_space->if_counter);
+    gl_space->if_counter++;
+
+    // if body
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, ";#=========If_body=========#\n")
+    translate_node_to_asm_code(node->left, gl_space, asm_payload);
+    stack_pop(&gl_space->cond_stack, &save_counter);
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, ";#=========End_body========#\n")
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "jmp if_end_%d\n", save_counter)
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "else_start_%d:\n", save_counter)
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, ";#=======Else_body=========#\n")
+
+    if (node->right) {
+        translate_node_to_asm_code(node->right, gl_space, asm_payload);
+        stack_pop(&gl_space->cond_stack, &save_counter);
+    }
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, ";#=========End_body========#\n")
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "jmp if_end_%d\n", save_counter)
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "if_check_%d:\n\n", save_counter)
+
+    //Condition
+    translate_if_condition(node_cond, gl_space, asm_payload, save_counter);
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "if_end_%d:\n"
+        ";#=========End=IF=========#\n",
+        save_counter)
+}
+
+void translate_if_condition(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload, int cur_cond_counter) {
+    assert(node);
+    assert(gl_space);
+    assert(asm_payload);
+
+    translate_node_to_asm_code(node, gl_space, asm_payload); // stack push cond
+    check_cpu_stack_before_if(&gl_space->cpu_stack);
+    data_types cond_arg_data_type = get_cpu_stack_last_var_data_type(&gl_space->cpu_stack);
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, ";#========Condition========#\n")
+
+    switch (cond_arg_data_type) {
+        case INT64_DATA_TYPE:
+            MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                "pop    rbx\n"
+                "test   rbx, rbx\n")
+            break;
+        default:
+            get_data_type_descr(GLOBAL_BUFER, BUFSIZ, cond_arg_data_type);
+            RAISE_TRANSLATOR_ERROR("if doesn't support %s var cmp", GLOBAL_BUFER)
+    }
+
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "je else_start_%d\n"
+        "jmp if_start_%d\n"
+        ";#======End=Condition=======#\n",
+        cur_cond_counter, cur_cond_counter)
 }
 
 

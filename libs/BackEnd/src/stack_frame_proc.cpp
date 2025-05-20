@@ -339,6 +339,7 @@ void add_func_arg_into_frame(var_t var, asm_glob_space *gl_space, bool first_arg
         RAISE_TRANSLATOR_ERROR("variable '%s' redefenition", var.name);
         return;
     }
+
     if (check_locals_untill_var(var.name_id, &gl_space->var_stack, gl_space->cur_scope_deep)
         && var.var_type == VAR_TYPE_FUNCTION_ARG) {
             RAISE_TRANSLATOR_ERROR("met local vars in stack frame before func arg `%s`", var.name)
@@ -400,11 +401,12 @@ bool var_stack_remove_local_variables(asm_glob_space *gl_space) {
     if (gl_space->var_stack.size == 0) return true;
 
     var_t last_elem = {};
-    last_elem.deep = INT_MAX;
+    stack_get_elem(&gl_space->var_stack, &last_elem, gl_space->var_stack.size - 1);
 
-    while (last_elem.deep > gl_space->cur_scope_deep && gl_space->var_stack.size) {
-        stack_get_elem(&gl_space->var_stack, &last_elem, gl_space->var_stack.size - 1);
+    while (last_elem.deep > gl_space->cur_scope_deep) {
         stack_pop(&gl_space->var_stack);
+        if (!gl_space->var_stack.size) return true;
+        stack_get_elem(&gl_space->var_stack, &last_elem, gl_space->var_stack.size - 1);
     }
 
     return true;
@@ -414,36 +416,6 @@ bool var_stack_remove_local_variables(asm_glob_space *gl_space) {
 bool check_elem_type_on_operation_supportive(cpu_stack_elem_types type) {
     return type == CPU_STACK_CONSTANT ||
            type == CPU_STACK_VAR_VALUE;
-}
-
-
-bool check_prepared_for_operation_arg(stack_t *cpu_stack, size_t idx) {
-    assert(cpu_stack);
-
-    if (cpu_stack->size <= idx) {
-        debug("cpu stack size < 2");
-        return false;
-    }
-
-    cpu_stack_elem_t arg1 = {}; stack_get_elem(cpu_stack, &arg1, cpu_stack->size - 1);
-    cpu_stack_elem_t arg2 = {}; stack_get_elem(cpu_stack, &arg2, cpu_stack->size - 2);
-
-    if (!check_elem_type_on_operation_supportive(arg1.stack_elem_type) ||
-        !check_elem_type_on_operation_supportive(arg2.stack_elem_type)) {
-            debug("args have operation unsupportive stack_elem_type")
-            return false;
-        }
-
-    if (arg1.data_type != arg2.data_type) {
-        debug("args data types do not match");
-        return false;
-    }
-    if (arg1.stack_elem_type != arg2.stack_elem_type) {
-        debug("args stack elem types do not match");
-        return false;
-    }
-
-    return true;
 }
 
 bool check_prepared_for_operation_args(stack_t *cpu_stack) {
@@ -467,10 +439,6 @@ bool check_prepared_for_operation_args(stack_t *cpu_stack) {
         debug("args data types do not match");
         return false;
     }
-    if (arg1.stack_elem_type != arg2.stack_elem_type) {
-        debug("args stack elem types do not match");
-        return false;
-    }
 
     return true;
 }
@@ -489,4 +457,18 @@ bool check_cpu_stack_before_return(stack_t *cpu_stack) {
             return false;
     }
     return true;
+}
+
+data_types get_cpu_stack_last_var_data_type(stack_t *cpu_stack) {
+    assert(cpu_stack);
+    assert(cpu_stack->size > 0);
+
+    cpu_stack_elem_t elem = {};
+    stack_get_elem(cpu_stack, &elem, cpu_stack->size - 1);
+
+    return elem.data_type;
+}
+
+bool check_cpu_stack_before_if(stack_t *cpu_stack) {
+    return check_cpu_stack_before_return(cpu_stack);
 }

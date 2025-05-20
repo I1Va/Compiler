@@ -6,6 +6,7 @@
 #include "translator_general.h"
 #include "sections_processing.h"
 
+const int FARGS_RBP_OFFSET = 16;
 
 void translate_ast_to_asm_code(ast_tree_t *tree);
 void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
@@ -22,6 +23,8 @@ void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
 void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
+void translate_if(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
+void translate_if_condition(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload, int cur_cond_counter);
 
 
 #endif // AST_TRANSLATOR_H
