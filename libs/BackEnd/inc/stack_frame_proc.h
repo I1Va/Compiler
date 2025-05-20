@@ -8,7 +8,6 @@
 
 
 enum cpu_stack_elem_types {
-    CPU_STACK_UNINITIALIZED_VAR,
     CPU_STACK_VAR_VALUE,
     CPU_STACK_CONSTANT,
     CPU_STACK_RETURN_ADDR,
@@ -49,5 +48,8 @@ bool var_stack_remove_local_variables(asm_glob_space *gl_space);
 int add_local_var_into_frame(var_t var, asm_glob_space *gl_space);
 void add_func_arg_into_frame(var_t var, asm_glob_space *gl_space, bool first_arg_in_rev_order_state);
 
+bool check_prepared_for_operation_args(stack_t *cpu_stack);
+bool check_elem_type_on_operation_supportive(cpu_stack_elem_types type);
+bool check_cpu_stack_before_return(stack_t *cpu_stack);
 
 #endif // STACK_FRAME_PROC_H

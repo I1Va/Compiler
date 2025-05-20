@@ -111,9 +111,9 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
             translate_return_node(node, gl_space, asm_payload); break;
         case AST_CALL: translate_func_call(node, gl_space, asm_payload); break;
 
+        case AST_OPERATION: translate_operation(node, gl_space, asm_payload);
+            break;
 
-        // case NODE_OP: translate_op(node);
-        //     break;
         // case NODE_ASSIGN: translate_assign(node);
         //     break;
 
@@ -164,7 +164,9 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "push   %ld;// push int64 constant\n",
             node->data.value.int64_val)
+            cpu_stack_push_constant(&gl_space->cpu_stack, INT64_DATA_TYPE,  node->data.value);
             return;
+
         case AST_NUM_DOUBLE:
             generate_mangled_name(GLOBAL_BUFER, BUFSIZ, "double_constant_", DEFAULT_MANGLING_SUFFIX_SZ);
             add_global_variable_record_to_data_section(asm_payload, GLOBAL_BUFER, DOUBLE_DATA_TYPE, node->data.value);
@@ -174,16 +176,21 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                 "sub    rsp, 16   ;// push double constant\n"
                 "movdqu [rsp] xmm1;//                     \n",
                 GLOBAL_BUFER)
+            cpu_stack_push_constant(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, node->data.value);
             return;
+
         case AST_STR_LIT:
             generate_mangled_name(GLOBAL_BUFER, BUFSIZ, "str_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
             add_global_variable_record_to_data_section(asm_payload, GLOBAL_BUFER, STRING_DATA_TYPE, node->data.value);
 
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                "lea    rbx, %s;//                     \n"
-                "push   rbx    ;// push double constant\n",
+                "lea    rbx, %s;//                          \n"
+                "push   rbx    ;// push str_lit_ptr constant\n",
                 GLOBAL_BUFER)
+
+            cpu_stack_push_constant(&gl_space->cpu_stack, STRING_DATA_TYPE, node->data.value);
             return;
+
         default:
             get_ast_node_descr(GLOBAL_BUFER, BUFSIZ, node->data.ast_node_type);
             RAISE_TR_ERROR("error : `%s` isn't constant type\n", GLOBAL_BUFER)
@@ -370,6 +377,7 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         "mov   rbp, rsp                \n"
         ";#=======End=Action========#  \n",
         func_symbol.sym_name);
+    cpu_stack_push_base_pointer(&gl_space->cpu_stack);
 
     add_symbol_to_name_table(&asm_payload->symbol_table, func_symbol);
 
@@ -496,6 +504,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "push   rbx                                           \n",
                     local_var.base_pointer_offset, GLOBAL_BUFER, local_var.name);
 
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
             case DOUBLE_DATA_TYPE:
@@ -514,6 +523,8 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "mov    rbx, [rbp %d]; // access to %s string literal ptr '%s'\n"
                     "push   rbx                                                   \n",
                     local_var.base_pointer_offset, GLOBAL_BUFER, local_var.name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
+                return;
 
             case NONE_DATA_TYPE: RAISE_TR_ERROR("error: NONE_DATA_TYPE var identifier\n");
             case VOID_DATA_TYPE: RAISE_TR_ERROR("error: VOID_DATA_TYPE var identifier\n");
@@ -530,6 +541,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "mov    rbx, [%s]; // access to global int64 '%s'   \n"
                     "push   rbx                                         \n",
                     global_var_sym.sym_name, global_var_sym.sym_name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, global_var_sym.sym_name, CPU_STACK_VAR_VALUE);
                 return;
 
             case DOUBLE_DATA_TYPE:
@@ -538,6 +550,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "sub    rsp, 16                                     \n"
                     "movdqu [rsp], xmm1 // access to global double '%s' \n",
                      global_var_sym.sym_name, global_var_sym.sym_name)
+                cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, global_var_sym.sym_name, CPU_STACK_VAR_VALUE);
                 return;
 
             case STRING_DATA_TYPE:
@@ -545,6 +558,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                     "lea    rbx, %s; // access to global string '%s'    \n"
                     "push   rbx                                         \n",
                     global_var_sym.sym_name, global_var_sym.sym_name);
+                cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, global_var_sym.sym_name, CPU_STACK_VAR_VALUE);
                 return;
             case VOID_DATA_TYPE: RAISE_TR_ERROR("error: VOID_DATA_TYPE var identifier \n");
             case NONE_DATA_TYPE: RAISE_TR_ERROR("error NONE_TYPE\n");
@@ -582,6 +596,60 @@ void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
         translate_func_call(node, gl_space, asm_payload);
         return;
     }
+
+    CHECK_NODE_TYPE(node, AST_OPERATION);
+
+    translate_operation(node->right, gl_space, asm_payload);
+    translate_operation(node->left, gl_space, asm_payload);
+
+
+
+    if (!check_prepared_for_operation_args(&gl_space->cpu_stack)) RAISE_TRANSLATOR_ERROR("failed to prepare args for operation")
+
+    cpu_stack_elem_t arg_left = {};
+    cpu_stack_elem_t arg_right = {};
+    stack_get_elem(&gl_space->cpu_stack, &arg_left, gl_space->cpu_stack.size - 1);
+    stack_get_elem(&gl_space->cpu_stack, &arg_right, gl_space->cpu_stack.size - 2);
+
+    data_types args_data_type = arg_left.data_type; assert(arg_left.data_type == arg_right.data_type);
+
+    switch ((lexer_token_t) node->data.value.int64_val) {
+        case TOKEN_ADD:
+            switch (args_data_type) {
+                case INT64_DATA_TYPE:
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "pop    rbx     \n"
+                        "pop    rcx     \n"
+                        "add    rbx, rcx\n"
+                        "push   rbx     \n")
+                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
+                    return;
+
+                case DOUBLE_DATA_TYPE:
+                    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+                        "movdqu xmm1, [rsp]\n"
+                        "add    rsp, 16    \n"
+                        "movdqu xmm2, [rsp]\n"
+                        "add    rsp, 16    \n"
+                        "addpd  xmm1, xmm2 \n"
+                        "sub    rsp, 16    \n"
+                        "movdqu [rsp], xmm1\n")
+                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                    cpu_stack_pop_local_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                    cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?op_var?", CPU_STACK_VAR_VALUE);
+                    return;
+                default: break;
+            }
+        default: break;
+    }
+
+    int token_offset = 0;
+    int data_type_offset = 1 + token_write(GLOBAL_BUFER, BUFSIZ, (lexer_token_t) node->data.value.int64_val);
+    get_data_type_descr(GLOBAL_BUFER + data_type_offset, BUFSIZ, args_data_type);
+    RAISE_TRANSLATOR_ERROR("operation `%s` doesn't support args data type of `%s`", GLOBAL_BUFER, GLOBAL_BUFER + data_type_offset)
+
 
 //     CHECK_NODE_TYPE(node, AST_OPERATION);
 //     translate_op(node->right);
@@ -667,23 +735,33 @@ void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
         return;
     }
 
-    // push return addr
-    MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "call %s:\n", function_symbol->sym_name);
+    cpu_stack_push_return_addr(&gl_space->cpu_stack);
+    MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+        "call   %s      \n"
+        "add    rsp, %lu\n",
+        function_symbol->sym_name, args_summary_nmemb);
+
 
     switch (return_data_type) {
         case INT64_DATA_TYPE:
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "push  rax;// push return value\n");
+            cpu_stack_push_variable(&gl_space->cpu_stack, INT64_DATA_TYPE, "?ret_val?", CPU_STACK_VAR_VALUE);
             break;
+
         case STRING_DATA_TYPE:
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "push  rax;// push return value\n");
+            cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, "?ret_val?", CPU_STACK_VAR_VALUE);
             break;
+
         case DOUBLE_DATA_TYPE:
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                 "sub    rsp, 16     ;// push return value\n"
                 "movdqu [rsp], xmm0 ;//                  \n");
+            cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, "?ret_val?", CPU_STACK_VAR_VALUE);
             break;
-        case VOID_DATA_TYPE:
-            break;
+
+        case VOID_DATA_TYPE: break;
+
         case NONE_DATA_TYPE: RAISE_TRANSLATOR_ERROR("NONE_DATA_TYPE return data_type");
     }
 }
@@ -696,11 +774,15 @@ void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_
 
     ast_tree_elem_t *return_val_node = node->left;
 
+    cpu_stack_elem_t cpu_stack_last_elem = {};
+
     data_types return_data_type         = NONE_DATA_TYPE;
     char      *sym_name                 = NULL;
     char      *var_name                 = NULL;
     symbol_t  *global_return_sym_ptr    = NULL;
     var_t     local_ret_var             = POISON_VAR_T;
+
+
 
     if (return_val_node) {
         translate_node_to_asm_code(return_val_node, gl_space, asm_payload);
@@ -741,6 +823,15 @@ void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_
                 global_return_sym_ptr = symbol_table_find(&asm_payload->symbol_table, sym_name);
                 return_data_type = global_return_sym_ptr->func_sym_info.return_data_type;
                 break;
+            case AST_OPERATION:
+                if (!check_cpu_stack_before_return(&gl_space->cpu_stack)) {
+                    dump_cpu_stack(stderr, &gl_space->cpu_stack);
+                    RAISE_TRANSLATOR_ERROR("cpu stack invalid state before return");
+                }
+                stack_get_elem(&gl_space->cpu_stack, &cpu_stack_last_elem, gl_space->cpu_stack.size - 1);
+                return_data_type = cpu_stack_last_elem.data_type;
+                break;
+
             default:
                 get_ast_node_descr(GLOBAL_BUFER, BUFSIZ, return_val_node->data.ast_node_type);
                 RAISE_TRANSLATOR_ERROR("error : return_val_node incorect type `%s`", GLOBAL_BUFER)
@@ -748,12 +839,19 @@ void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_
 
         switch (return_data_type) {
             case INT64_DATA_TYPE:
-                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    rax\n") break;
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    rax\n")
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, INT64_DATA_TYPE);
+                break;
+
             case STRING_DATA_TYPE:
-                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    rax\n") break;
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    rax\n")
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, STRING_DATA_TYPE);
+                break;
 
             case DOUBLE_DATA_TYPE:
-                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    xmm0\n") break;
+                MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "pop    xmm0\n")
+                cpu_stack_pop_value_for_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE);
+                break;
 
             default:
                 get_data_type_descr(GLOBAL_BUFER, BUFSIZ, return_data_type);

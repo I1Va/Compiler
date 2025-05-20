@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "general.h"
 #include "lang_logger.h"
 #include "sections_processing.h"
 #include "stack_funcs.h"
@@ -50,7 +51,6 @@ int get_cpu_stack_elem_type_descr(char bufer[], const size_t buf_sz, const cpu_s
     assert(bufer);
     #define T_DESCR_(type) case type: return snprintf(bufer, buf_sz, "%s", #type);
     switch (type) {
-        T_DESCR_(CPU_STACK_UNINITIALIZED_VAR)
         T_DESCR_(CPU_STACK_VAR_VALUE)
         T_DESCR_(CPU_STACK_CONSTANT)
         T_DESCR_(CPU_STACK_RETURN_ADDR)
@@ -82,9 +82,9 @@ bool cpu_stack_pop_local_variable(stack_t *cpu_stack, const data_types data_type
 
     cpu_stack_elem_t last_elem = {};
     stack_get_elem(cpu_stack, &last_elem, cpu_stack->size - 1);
-    if (!(last_elem.stack_elem_type == CPU_STACK_VAR_VALUE || last_elem.stack_elem_type == CPU_STACK_UNINITIALIZED_VAR)) {
+    if (!(last_elem.stack_elem_type == CPU_STACK_VAR_VALUE)) {
         get_cpu_stack_elem_type_descr(GLOBAL_BUFER, BUFSIZ, last_elem.stack_elem_type);
-        debug("(cpu_stack_elem_types) -> expected : CPU_STACK_VAR_VALUE|CPU_STACK_UNINITIALIZED_VAR, got : {%s}", GLOBAL_BUFER);
+        debug("(cpu_stack_elem_types) -> expected : CPU_STACK_VAR_VALUE, got : {%s}", GLOBAL_BUFER);
         dump_cpu_stack(stderr, cpu_stack);
         return false;
     }
@@ -410,16 +410,83 @@ bool var_stack_remove_local_variables(asm_glob_space *gl_space) {
     return true;
 }
 
-// int get_stack_frame_var_offset(stack_t *var_stack, const size_t stack_frame_idx) {
-//     assert(var_stack);
 
-//     int variable_offset = 0;
+bool check_elem_type_on_operation_supportive(cpu_stack_elem_types type) {
+    return type == CPU_STACK_CONSTANT ||
+           type == CPU_STACK_VAR_VALUE;
+}
 
-//     var_t last_elem = {};
-//     for (size_t i = 0; i < stack_frame_idx; i++) {
-//         stack_get_elem(var_stack, &last_elem, var_stack->size - 1);
-//         variable_offset += (int) last_elem.var_data_nmemb;
-//     }
 
-//     return variable_offset;
-// }
+bool check_prepared_for_operation_arg(stack_t *cpu_stack, size_t idx) {
+    assert(cpu_stack);
+
+    if (cpu_stack->size <= idx) {
+        debug("cpu stack size < 2");
+        return false;
+    }
+
+    cpu_stack_elem_t arg1 = {}; stack_get_elem(cpu_stack, &arg1, cpu_stack->size - 1);
+    cpu_stack_elem_t arg2 = {}; stack_get_elem(cpu_stack, &arg2, cpu_stack->size - 2);
+
+    if (!check_elem_type_on_operation_supportive(arg1.stack_elem_type) ||
+        !check_elem_type_on_operation_supportive(arg2.stack_elem_type)) {
+            debug("args have operation unsupportive stack_elem_type")
+            return false;
+        }
+
+    if (arg1.data_type != arg2.data_type) {
+        debug("args data types do not match");
+        return false;
+    }
+    if (arg1.stack_elem_type != arg2.stack_elem_type) {
+        debug("args stack elem types do not match");
+        return false;
+    }
+
+    return true;
+}
+
+bool check_prepared_for_operation_args(stack_t *cpu_stack) {
+    assert(cpu_stack);
+
+    if (cpu_stack->size < 2) {
+        debug("cpu stack size < 2");
+        return false;
+    }
+
+    cpu_stack_elem_t arg1 = {}; stack_get_elem(cpu_stack, &arg1, cpu_stack->size - 1);
+    cpu_stack_elem_t arg2 = {}; stack_get_elem(cpu_stack, &arg2, cpu_stack->size - 2);
+
+    if (!check_elem_type_on_operation_supportive(arg1.stack_elem_type) ||
+        !check_elem_type_on_operation_supportive(arg2.stack_elem_type)) {
+            debug("args have operation unsupportive stack_elem_type")
+            return false;
+        }
+
+    if (arg1.data_type != arg2.data_type) {
+        debug("args data types do not match");
+        return false;
+    }
+    if (arg1.stack_elem_type != arg2.stack_elem_type) {
+        debug("args stack elem types do not match");
+        return false;
+    }
+
+    return true;
+}
+
+bool check_cpu_stack_before_return(stack_t *cpu_stack) {
+    assert(cpu_stack);
+    if (cpu_stack->size < 1) {
+        debug("cpu_stack->size < 1");
+        return false;
+    }
+
+    cpu_stack_elem_t last_elem = {}; stack_get_elem(cpu_stack, &last_elem, cpu_stack->size - 1);
+    if (!(last_elem.stack_elem_type == CPU_STACK_CONSTANT ||
+          last_elem.stack_elem_type == CPU_STACK_VAR_VALUE)) {
+            debug("invalid for return operation cpu last elem")
+            return false;
+    }
+    return true;
+}
