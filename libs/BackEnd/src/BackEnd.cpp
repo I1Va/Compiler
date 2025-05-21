@@ -9,6 +9,7 @@
 #include "AST_io.h"
 #include "ast_translator.h"
 #include "general.h"
+#include "string_funcs.h"
 
 
 // const size_t CHUNK_SIZE = 1024;
@@ -96,7 +97,7 @@ bool BackEnd_generate_asm_code_from_tree_file(str_storage_t **storage, const cha
 
     }
 
-    translate_ast_to_asm_code(&ast_tree);
+    translate_ast_to_asm_code(&ast_tree, storage);
 
     free(text.str_ptr);
     return true;
@@ -106,11 +107,11 @@ bool BackEnd_generate_asm_code_from_tree_file(str_storage_t **storage, const cha
     return false;
 }
 
-bool BackEnd_generate_asm_code(ast_tree_t *ast_tree, const char asm_code_outpath[]) {
+bool BackEnd_generate_asm_code(ast_tree_t *ast_tree, str_storage_t **storage, const char asm_code_outpath[]) {
     assert(ast_tree);
     assert(asm_code_outpath);
 
-    translate_ast_to_asm_code(ast_tree);
+    translate_ast_to_asm_code(ast_tree, storage);
 
     return true;
 }

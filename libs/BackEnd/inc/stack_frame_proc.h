@@ -53,7 +53,7 @@ bool check_elem_type_on_operation_supportive(cpu_stack_elem_types type);
 bool check_cpu_stack_before_return(stack_t *cpu_stack);
 
 data_types get_cpu_stack_last_var_data_type(stack_t *cpu_stack);
-bool check_cpu_stack_before_if(stack_t *cpu_stack);
+bool check_cpu_stack_before_condition(stack_t *cpu_stack);
 
 
 #endif // STACK_FRAME_PROC_H

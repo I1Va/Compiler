@@ -26,7 +26,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    if (!BackEnd_generate_asm_code(&ast_tree, ASM_CODE_OUTPATH)) {
+    if (!BackEnd_generate_asm_code(&ast_tree, &storage, ASM_CODE_OUTPATH)) {
         debug("BackEnd_generate_asm_code failed\n");
         CLEAR_MEMORY(exit_mark)
     }

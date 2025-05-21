@@ -16,7 +16,7 @@ const size_t MAX_DATA_SECTION_SZ = 1ul << 13;
 
 #define MAKE_RECORD_IN_DATA_SECTION(asm_payload, str_, ...) {                                                   \
     asm_payload->data_section_offset += snprintf(asm_payload->data_section + asm_payload->data_section_offset,  \
-                                                    MAX_TEXT_SECTION_SZ, str_, ##__VA_ARGS__);}
+                                                    MAX_DATA_SECTION_SZ, str_, ##__VA_ARGS__);}
 
 enum symbol_type {
     NONE_TYPE_SYMBOL,

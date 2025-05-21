@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <cstdlib>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -26,7 +27,8 @@ str_storage_t *str_storage_t_ctor(const size_t chunk_size) {
 
 void generate_random_string(char bufer[], const size_t str_sz) {
     for (size_t i = 0; i < str_sz; i++) {
-        bufer[i] = 'a' + rand() % ENGLISH_ALPHABET_SZ;
+        if (rand() & 1) bufer[i] = 'a' + rand() % ENGLISH_ALPHABET_SZ;
+        else            bufer[i] = 'A' + rand() % ENGLISH_ALPHABET_SZ;
     }
     bufer[str_sz] = '\0';
 }

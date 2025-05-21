@@ -7,6 +7,7 @@
 #include "general.h"
 #include "AST_proc.h"
 #include "FrontEnd.h"
+#include "string_funcs.h"
 
 #define CHECK_AST_NODE_TYPE(node, exp_type)                                             \
     if (node->data.ast_node_type != exp_type) {                                                  \
@@ -34,6 +35,8 @@ const size_t DEFAULT_MANGLING_SUFFIX_SZ = 7;
 const size_t ASM_STACK_CELL_NMEMB = 8;
 
 struct asm_glob_space {
+    str_storage_t ** str_storage = NULL;
+
     int cur_scope_deep  = 0;
     int while_counter   = 0;
     int if_counter      = 0;

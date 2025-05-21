@@ -31,10 +31,13 @@ const char COLORS[][16] =
 };
 const int COLORS_CNT = sizeof(COLORS) / sizeof(COLORS[0]);
 
-ast_tree_elem_t *load_ast_tree(char *src, str_storage_t **storage, char *bufer) {
+ast_tree_elem_t *load_ast_tree(char *src, str_storage_t **storage, char *bufer, bool first_launch) {
     assert(src);
 
-    static char *text = src;
+
+    static char *text = NULL;
+    if (first_launch) text = src;
+
 
     text = strchr(text, '{');
     if (text == NULL) {
@@ -77,10 +80,10 @@ ast_tree_elem_t *load_ast_tree(char *src, str_storage_t **storage, char *bufer) 
     ast_tree_elem_t *node = ast_tree_create_node(NULL, NULL, node_val);
 
     if (left_son_exists) {
-        node->left = load_ast_tree(text, storage, bufer);
+        node->left = load_ast_tree(text, storage, bufer, false);
     }
     if (right_son_exists) {
-        node->right = load_ast_tree(text, storage, bufer);
+        node->right = load_ast_tree(text, storage, bufer, false);
     }
 
     return node;

@@ -480,7 +480,6 @@ void translate_node_to_asm_code(ast_tree_elem_t *node) {
 }
 
 void translate_while(ast_tree_elem_t *node) {
-
     int cur_node_type = NODE_WHILE;
 
     assert(node);

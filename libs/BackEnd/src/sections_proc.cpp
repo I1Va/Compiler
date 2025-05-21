@@ -25,7 +25,8 @@ int get_symbol_idx_in_name_table(symbol_table_t *symbol_table, const symbol_t sy
 
 void add_symbol_to_name_table(symbol_table_t *symbol_table, symbol_t symbol) {
     if (get_symbol_idx_in_name_table(symbol_table, symbol) != -1) {
-        RAISE_TRANSLATOR_ERROR("function '%s' redefenition", symbol.sym_name);
+        dump_symbol_table_t(stderr, symbol_table);
+        RAISE_TRANSLATOR_ERROR("sym '%s' redefenition", symbol.sym_name);
         return;
     }
 

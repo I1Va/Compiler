@@ -287,10 +287,10 @@ var_t get_var_from_frame(int name_id, stack_t *var_stack, const int cur_scope_de
     if (var_stack->size == 0) return POISON_VAR_T;
 
     var_t cur_var = {};
-    cur_var.deep = -1;
+    for (int i = (var_stack->size - 1); i >= 0; i--) {
+        stack_get_elem(var_stack, &cur_var, i);
 
-    for (int i = var_stack->size - 1; i >= 0 && cur_var.deep <= cur_scope_deep; i--) {
-        stack_get_elem(var_stack, &cur_var, (size_t) i);
+        if (cur_var.deep > cur_scope_deep) return POISON_VAR_T;
         if (cur_var.name_id == name_id) return cur_var;
 
     }
@@ -418,6 +418,15 @@ bool check_elem_type_on_operation_supportive(cpu_stack_elem_types type) {
            type == CPU_STACK_VAR_VALUE;
 }
 
+static void write_to_bufer_two_types(char *bufer, const size_t buf_sz, const data_types type1, const data_types type2) {
+    assert(bufer);
+
+
+    int type2_offset = get_data_type_descr(bufer, buf_sz, type1);
+    bufer[type2_offset] = '$';
+    get_data_type_descr(bufer + type2_offset + 1, buf_sz, type2);
+}
+
 bool check_prepared_for_operation_args(stack_t *cpu_stack) {
     assert(cpu_stack);
 
@@ -431,12 +440,14 @@ bool check_prepared_for_operation_args(stack_t *cpu_stack) {
 
     if (!check_elem_type_on_operation_supportive(arg1.stack_elem_type) ||
         !check_elem_type_on_operation_supportive(arg2.stack_elem_type)) {
+            dump_cpu_stack(stderr, cpu_stack);
             debug("args have operation unsupportive stack_elem_type")
             return false;
         }
 
     if (arg1.data_type != arg2.data_type) {
-        debug("args data types do not match");
+        write_to_bufer_two_types(GLOBAL_BUFER, BUFSIZ, arg1.data_type, arg2.data_type);
+        debug("args data types do not match : %s", GLOBAL_BUFER);
         return false;
     }
 
@@ -469,6 +480,6 @@ data_types get_cpu_stack_last_var_data_type(stack_t *cpu_stack) {
     return elem.data_type;
 }
 
-bool check_cpu_stack_before_if(stack_t *cpu_stack) {
+bool check_cpu_stack_before_condition(stack_t *cpu_stack) {
     return check_cpu_stack_before_return(cpu_stack);
 }

@@ -10,7 +10,7 @@ const dot_edge_pars_t DEFAULT_EDGE_PARS = {NULL, NULL, "#00FF00", 2};
 const dot_code_pars_t LIST_DOT_CODE_PARS = {"TB"};
 
 
-ast_tree_elem_t *load_ast_tree(char *text, str_storage_t **storage, char *bufer);
+ast_tree_elem_t *load_ast_tree(char *text, str_storage_t **storage, char *bufer, bool first_launch=true);
 void ast_tree_file_dump_rec(FILE* stream, ast_tree_elem_t *node, size_t indent);
 void ast_tree_file_dump(const char path[], ast_tree_t *tree, size_t indent);
 
