@@ -62,33 +62,56 @@ void dump_asm_payload_to_file(const char path[], asm_payload_t *asm_payload) {
     }
 
     fprintf(file,
-        "section .data\n%s\n"
-        "section .text\n%s\n",
-        asm_payload->data_section,
-        asm_payload->text_section
+        "section .text\n%s\n"
+        "section .data\n%s\n",
+        asm_payload->text_section,
+        asm_payload->data_section
     );
+}
+
+void prepare_standart_lib(asm_payload_t *lib_payload) {
+    assert(lib_payload);
+
+    MAKE_RECORD_IN_TEXT_SECTION(lib_payload, "lib_payload");
+}
+
+void link_main_prog_with_lib(asm_payload_t *lib_payload, asm_payload_t *main_payload, asm_payload_t *outfile_payload) {
+    assert(lib_payload);
+    assert(main_payload);
+
+    MAKE_RECORD_IN_TEXT_SECTION(outfile_payload, "%s%s", lib_payload->text_section, main_payload->text_section);
+    MAKE_RECORD_IN_DATA_SECTION(outfile_payload, "%s",   main_payload->data_section);
+}
+
+void prepare_main_program(asm_payload_t *main_payload, ast_tree_t *tree, str_storage_t **storage) {
+    assert(main_payload);
+    assert(storage);
+    assert(tree);
+
+
+    asm_glob_space gl_space = {}; translator_global_space_init(&gl_space, storage);
+
+    bool first_launch_state = true;
+
+    main_payload->data_section_offset += snprintf(main_payload->data_section + main_payload->data_section_offset,
+                                                MAX_DATA_SECTION_SZ, "\tglobal main\n");
+
+
+    translate_node_to_asm_code(tree->root, &gl_space, main_payload);
+    translator_global_space_clear(&gl_space);
 }
 
 void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage) {
     assert(tree);
     assert(storage);
 
-    asm_glob_space gl_space = {}; translator_global_space_init(&gl_space, storage);
-    asm_payload_t asm_payload = {};
-    bool first_launch_state = true;
+    asm_payload_t lib_payload       = {}; prepare_standart_lib(&lib_payload);
+    asm_payload_t main_payload      = {}; prepare_main_program(&main_payload, tree, storage);
+    asm_payload_t outfile_payload   = {};
 
-    asm_payload.data_section_offset += snprintf(asm_payload.data_section + asm_payload.data_section_offset,
-                                                MAX_DATA_SECTION_SZ, "\tglobal main\n");
+    link_main_prog_with_lib(&lib_payload, &main_payload, &outfile_payload);
 
-
-    translate_node_to_asm_code(tree->root, &gl_space, &asm_payload);
-    dump_asm_payload_to_file("./testing_space/code.txt", &asm_payload);
-
-    translator_global_space_clear(&gl_space);
-
-    // fprintf(asm_code_ptr,
-    //                     "call main:\n"
-    //                     "hlt;\n");
+    dump_asm_payload_to_file("./testing_space/code.txt", &outfile_payload);
 }
 
 void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
@@ -114,8 +137,7 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         case AST_STR_LIT    :
             translate_constant(node, gl_space, asm_payload); break;
 
-        case AST_RETURN:
-            translate_return_node(node, gl_space, asm_payload); break;
+        case AST_RETURN: translate_return_node(node, gl_space, asm_payload); break;
         case AST_CALL: translate_func_call(node, gl_space, asm_payload); break;
 
         case AST_OPERATION: translate_operation(node, gl_space, asm_payload); break;
@@ -125,13 +147,6 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
         case AST_WHILE: translate_while(node, gl_space, asm_payload); break;
 
         case AST_ASSIGN: translate_assign(node, gl_space, asm_payload); break;
-
-        // case NODE_BREAK: fprintf_red(stdout, "there is should be <NODE_BREAK> translation");
-        //     break;
-        // case NODE_CONTINUE: fprintf_red(stdout, "there is should be <NODE_CONTINUE> translation");
-        //     break;
-
-
 
 
 
@@ -365,6 +380,8 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
     func_symbol.func_sym_info.args_cnt = count_node_type_in_subtrees(function_identifier_node->left, AST_VAR_INIT);
     func_symbol.func_sym_info.return_data_type = function_return_data_type;
 
+
+
     gl_space->cur_func_name = func_symbol.sym_name;
 
 
@@ -375,6 +392,23 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
         func_symbol.func_sym_info.args_summary_nmemb =
         (int64_t) translate_func_args_init(func_id_node->left, gl_space, asm_payload, FIRST_ARG_TRUE);
     }
+
+
+    ast_tree_elem_t *scope_node = func_id_node->right;
+    CHECK_NODE_TYPE(scope_node, AST_SCOPE)
+    if (!scope_node->left) { // extern function
+        func_symbol.sym_type = EXTERN_FUNCTION_SYMBOL;
+        add_symbol_to_name_table(&asm_payload->symbol_table, func_symbol);
+        MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
+            "\n;=====extern_lib_fun========\n"
+            "; %s                          \n"
+            ";===========================\n\n",
+            func_symbol.sym_name)
+
+        gl_space->cur_func_name = NULL;
+        return;
+    }
+
 
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
         "\n;#=========Function========#\n"
@@ -789,7 +823,6 @@ void translate_funcs_call_args(ast_tree_elem_t *node, asm_glob_space *gl_space, 
     translate_node_to_asm_code(node->right, gl_space, asm_payload);
 }
 
-
 void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
     CHECK_NODE_TYPE(node, AST_CALL);
@@ -799,7 +832,8 @@ void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
     symbol_t *function_symbol = symbol_table_find(&asm_payload->symbol_table, function_name);
 
     if (function_symbol == NULL) RAISE_TRANSLATOR_ERROR("symbol `%s` was not found in symbol_table", function_name)
-    if (function_symbol->sym_type != FUNCTION_SYMBOL) RAISE_TR_ERROR("symbol `%s` isn't FUNCTION_SYMBOL", function_name)
+    if (!(function_symbol->sym_type == FUNCTION_SYMBOL ||
+          function_symbol->sym_type == EXTERN_FUNCTION_SYMBOL)) RAISE_TR_ERROR("symbol `%s` isn't FUNCTION_SYMBOL|EXTERN_FUNCTION_SYMBOL", function_name)
 
     size_t args_summary_nmemb   = function_symbol->func_sym_info.args_summary_nmemb;
     size_t argc                 = function_symbol->func_sym_info.args_cnt;
@@ -948,7 +982,6 @@ void translate_return_node(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_
 
     MAKE_RECORD_IN_TEXT_SECTION(asm_payload, "jmp   %s%s\n", gl_space->cur_func_name, FUNCTION_LEAVE_SUFFIX)
 }
-
 
 void translate_if(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
