@@ -252,6 +252,7 @@ void add_global_variable_record_to_data_section(asm_payload_t *asm_payload, char
     global_var_sym.sym_bind = LOCAL_OBJ_SYMBOL;
     global_var_sym.sym_section = DATA_SECTION;
     // WARNING------------------------------------
+    global_var_sym.sym_type = VARIABLE_SYMBOL;
     global_var_sym.section_offset = -1; // FIXME:
     // WARNING------------------------------------
     global_var_sym.var_sym_info.var_data_type = var_data_type;
@@ -528,7 +529,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
     CHECK_NODE_TYPE(node, AST_VAR_ID);
 
     char *var_name = node->data.value.sval;             // строка хранится в string_storage, определенном в main.cpp
-    int var_name_unic_id = node->data.value.int64_val;  // идентификатор стэкового фрэйма
+    int var_name_unic_id = (int) node->data.value.int64_val;  // идентификатор стэкового фрэйма
 
     var_t local_var = get_var_from_frame(var_name_unic_id, &gl_space->var_stack, gl_space->cur_scope_deep);
     bool local_var_defined = !var_t_equal(local_var, POISON_VAR_T);
@@ -576,6 +577,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                 cpu_stack_push_variable(&gl_space->cpu_stack, STRING_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
+
             case NONE_DATA_TYPE: RAISE_TR_ERROR("error: NONE_DATA_TYPE var identifier\n");
             case VOID_DATA_TYPE: RAISE_TR_ERROR("error: VOID_DATA_TYPE var identifier\n");
         }
@@ -585,7 +587,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
     assert(global_var_sym_defined);
     // WARNING. THERE IS SHOULD BE RELOCATION!!!!!! FIXME:
     if (global_var_sym_defined) {
-        switch (local_var.var_data_type) {
+        switch (global_var_sym.var_sym_info.var_data_type) {
             case INT64_DATA_TYPE:
                 MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                     "mov    rbx, [%s]; // access to global int64 '%s'   \n"
