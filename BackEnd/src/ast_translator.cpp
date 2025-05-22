@@ -835,6 +835,28 @@ void translate_funcs_call_args(ast_tree_elem_t *node, asm_glob_space *gl_space, 
     translate_node_to_asm_code(node->right, gl_space, asm_payload);
 }
 
+
+
+
+
+size_t count_function_ast_args(ast_tree_elem_t *node) {
+    if (!node) return 0;
+    if (node->data.ast_node_type == AST_OPERATION) return 1;
+    if (node->data.ast_node_type == AST_FUNC_ID) return 1;
+
+    size_t count = (node->data.ast_node_type == AST_NUM_DOUBLE ||
+                    node->data.ast_node_type == AST_NUM_INT64  ||
+                    node->data.ast_node_type == AST_STR_LIT    ||
+                    node->data.ast_node_type == AST_VAR_ID);
+
+
+    if (node->left) count += count_function_ast_args(node->left);
+
+    if (node->right) count += count_function_ast_args(node->right);
+
+    return count;
+}
+
 void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
     assert(node);
     CHECK_NODE_TYPE(node, AST_CALL);
@@ -854,10 +876,7 @@ void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
 
     translate_funcs_call_args(node->right, gl_space, asm_payload);
 
-    size_t call_argc = count_node_type_in_subtrees(node->right, AST_NUM_DOUBLE) +
-                       count_node_type_in_subtrees(node->right, AST_NUM_INT64)  +
-                       count_node_type_in_subtrees(node->right, AST_STR_LIT);
-
+    size_t call_argc = count_function_ast_args(node->right);
 
     if (argc != call_argc) {
         RAISE_TR_ERROR("'%s' call error: expected %lu arguments, got '%lu'", function_symbol->sym_name, argc, call_argc);

@@ -1,5 +1,40 @@
 section .text
 
+
+;-------------------------------------------------
+; read int
+;
+; Destr:    rax, rbx, rdx, rdi, rsi, r8, r9, r10, r11, xmm1
+;
+; Ret:      rax
+;-------------------------------------------------
+
+intio_in:
+    call doubleio_in
+    cvttsd2si rax, xmm0
+    ret
+
+;-------------------------------------------------
+; print int
+;
+; Destr:    rax, rbx, rdx, rdi, rsi, r8, r9, r10, r11, xmm1
+;
+; Ret:      None
+;-------------------------------------------------
+
+intio_out:
+    mov rbx, [rsp + 8]
+    cvtsi2sd xmm1, rbx
+
+    sub rsp, 16
+    movdqu xmm1, [rsp]
+
+    call doubleio_out
+
+    add rsp, 16
+
+    ret
+
 ;-------------------------------------------------
 ; read double
 ;
