@@ -3,23 +3,8 @@
 
 #include "AST_structs.h"
 #include "stack_funcs.h"
-#include "translator_general.h"
-#include "sections_processing.h"
+#include "backend_structs.h"
 
-
-enum cpu_stack_elem_types {
-    CPU_STACK_VAR_VALUE,
-    CPU_STACK_CONSTANT,
-    CPU_STACK_RETURN_ADDR,
-    CPU_STACK_BASE_POINTER,
-};
-
-struct cpu_stack_elem_t {
-    const char *name;
-    cpu_stack_elem_types stack_elem_type;
-    data_types data_type;
-    multi_val_t data_value;
-};
 
 void cpu_elem_t_fprintf(FILE *stream, void *elem_ptr);
 void dump_cpu_stack(FILE *stream, stack_t *cpu_stack);

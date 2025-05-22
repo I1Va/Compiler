@@ -1,17 +1,15 @@
 #ifndef AST_TRANSLATOR_H
 #define AST_TRANSLATOR_H
 
-#include "stack_funcs.h"
-#include "AST_proc.h"
 #include "string_funcs.h"
-#include "translator_general.h"
-#include "sections_processing.h"
+#include "AST_structs.h"
+#include "backend_structs.h"
 
 const int FARGS_RBP_OFFSET = 16;
 const bool FIRST_ARG_TRUE = true;
 
 
-void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage);
+void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage, const char outfile_path[]);
 void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_semicolon(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);
 void translate_var_init(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload);

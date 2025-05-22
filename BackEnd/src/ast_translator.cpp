@@ -6,14 +6,13 @@
 #include "ast_translator.h"
 #include "AST_structs.h"
 #include "diff_DSL.h"
-#include "lang_logger.h"
 #include "sections_processing.h"
-#include "stack_frame_proc.h"
-#include "FrontEnd.h"
+#include "asm_gl_space_proc.h"
 #include "stack_funcs.h"
 #include "string_funcs.h"
+#include "backend_utils.h"
 
-#include "translator_general.h"
+#include "backend_utils.h"
 
 #define CHECK_NODE_TYPE(node, exp_type)                                         \
     if (node->data.ast_node_type != exp_type) {                                 \
@@ -72,7 +71,7 @@ void dump_asm_payload_to_file(const char path[], asm_payload_t *asm_payload) {
 void prepare_standart_lib(asm_payload_t *lib_payload) {
     assert(lib_payload);
 
-    MAKE_RECORD_IN_TEXT_SECTION(lib_payload, "lib_payload");
+    // MAKE_RECORD_IN_TEXT_SECTION(lib_payload, "lib_payload");
 }
 
 void link_main_prog_with_lib(asm_payload_t *lib_payload, asm_payload_t *main_payload, asm_payload_t *outfile_payload) {
@@ -91,8 +90,6 @@ void prepare_main_program(asm_payload_t *main_payload, ast_tree_t *tree, str_sto
 
     asm_glob_space gl_space = {}; translator_global_space_init(&gl_space, storage);
 
-    bool first_launch_state = true;
-
     main_payload->data_section_offset += snprintf(main_payload->data_section + main_payload->data_section_offset,
                                                 MAX_DATA_SECTION_SZ, "\tglobal main\n");
 
@@ -101,9 +98,10 @@ void prepare_main_program(asm_payload_t *main_payload, ast_tree_t *tree, str_sto
     translator_global_space_clear(&gl_space);
 }
 
-void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage) {
+void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage, const char outfile_path[]) {
     assert(tree);
     assert(storage);
+    assert(outfile_path);
 
     asm_payload_t lib_payload       = {}; prepare_standart_lib(&lib_payload);
     asm_payload_t main_payload      = {}; prepare_main_program(&main_payload, tree, storage);
@@ -111,7 +109,7 @@ void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage) {
 
     link_main_prog_with_lib(&lib_payload, &main_payload, &outfile_payload);
 
-    dump_asm_payload_to_file("./testing_space/code.txt", &outfile_payload);
+    dump_asm_payload_to_file(outfile_path, &outfile_payload);
 }
 
 void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_payload_t *asm_payload) {
@@ -778,7 +776,7 @@ void translate_operation(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
 
 
     int token_offset = 0;
-    int data_type_offset = 1 + token_write(GLOBAL_BUFER, BUFSIZ, (lexer_token_t) node->data.value.int64_val);
+    int data_type_offset = 1 + get_token_descr(GLOBAL_BUFER, BUFSIZ, (lexer_token_t) node->data.value.int64_val);
     get_data_type_descr(GLOBAL_BUFER + data_type_offset, BUFSIZ, args_data_type);
     RAISE_TRANSLATOR_ERROR("operation `%s` doesn't support args data type of `%s`", GLOBAL_BUFER, GLOBAL_BUFER + data_type_offset)
 

@@ -14,14 +14,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(libs/string_funcs)
 add_subdirectory(libs/stack)
 add_subdirectory(libs/general_lib)
+add_subdirectory(libs/AST_lib)
+add_subdirectory(libs/graphviz_funcs)
+
+
 
 add_executable(BackEnd
+    src/asm_gl_space_proc.cpp
+    src/backend_args_proc.cpp
     src/ast_translator.cpp
-    src/BackEnd.cpp
     src/sections_proc.cpp
-    src/stack_frame_proc.cpp
-    src/strong_type_proc.cpp
-    src/translator_general.cpp
+    src/backend_utils.cpp
     main.cpp
 )
 
@@ -33,6 +36,8 @@ target_link_libraries(BackEnd PRIVATE
     string_funcs
     stack
     general_lib
+    AST_lib
+    graphviz_funcs
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -5,7 +5,7 @@
 
 #include "general.h"
 #include "string_funcs.h"
-#include "translator_general.h"
+#include "backend_utils.h"
 #include "sections_processing.h"
 
 

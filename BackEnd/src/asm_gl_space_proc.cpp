@@ -3,18 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "general.h"
-#include "lang_logger.h"
-#include "sections_processing.h"
-#include "stack_funcs.h"
-#include "string_funcs.h"
-#include "translator_general.h"
-#include "stack_frame_proc.h"
 #include "stack_funcs.h"
 #include "stack_output.h"
-#include "sections_processing.h"
-
-
+#include "asm_gl_space_proc.h"
+#include "backend_structs.h"
+#include "backend_utils.h"
 
 static char GLOBAL_BUFER[BUFSIZ] = {};
 
@@ -217,11 +210,6 @@ bool cpu_stack_pop_base_pointer(stack_t *cpu_stack) {
     return true;
 }
 
-
-
-
-
-
 static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int cur_scope_deep) {
     assert(var_stack);
     assert(cur_scope_deep >= 0);
@@ -232,7 +220,7 @@ static bool check_locals_untill_var(int name_id, stack_t *var_stack, const int c
 
     bool meet_local_var_in_frame = false;
 
-    for (int i = cur_scope_deep; i < var_stack->size; i++) {
+    for (int i = cur_scope_deep; i < (int) var_stack->size; i++) {
         stack_get_elem(var_stack, &cur_var, (size_t) i);
 
         meet_local_var_in_frame |= (cur_var.var_type == VAR_TYPE_LOCAL_VAR);
@@ -250,7 +238,7 @@ bool check_name_id_in_cur_scope(int name_id, stack_t *var_stack, const int cur_s
     var_t cur_var = {};
     cur_var.deep = -1;
 
-    for (int i = var_stack->size - 1; i >= 0 && cur_var.deep <= cur_scope_deep; i--) {
+    for (int i = (int) var_stack->size - 1; i >= 0 && cur_var.deep <= cur_scope_deep; i--) {
         stack_get_elem(var_stack, &cur_var, (size_t) i);
         if (cur_var.name_id == name_id) return true;
 
@@ -287,8 +275,8 @@ var_t get_var_from_frame(int name_id, stack_t *var_stack, const int cur_scope_de
     if (var_stack->size == 0) return POISON_VAR_T;
 
     var_t cur_var = {};
-    for (int i = (var_stack->size - 1); i >= 0; i--) {
-        stack_get_elem(var_stack, &cur_var, i);
+    for (int i = (int) (var_stack->size - 1); i >= 0; i--) {
+        stack_get_elem(var_stack, &cur_var, (size_t) i);
 
         if (cur_var.deep > cur_scope_deep) return POISON_VAR_T;
         if (cur_var.name_id == name_id) return cur_var;
