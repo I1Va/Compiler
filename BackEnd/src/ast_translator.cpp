@@ -152,16 +152,10 @@ void translate_node_to_asm_code(ast_tree_elem_t *node, asm_glob_space *gl_space,
 
         case AST_RETURN: translate_return_node(node, gl_space, asm_payload); break;
         case AST_CALL: translate_func_call(node, gl_space, asm_payload); break;
-
         case AST_OPERATION: translate_operation(node, gl_space, asm_payload); break;
-
         case AST_IF: translate_if(node, gl_space, asm_payload); break;
-
         case AST_WHILE: translate_while(node, gl_space, asm_payload); break;
-
         case AST_ASSIGN: translate_assign(node, gl_space, asm_payload); break;
-
-
 
         case AST_FUNC_ID: RAISE_TR_ERROR(
             "<NODE_FUNC_ID> should be processed in"
@@ -202,6 +196,8 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                 "push   %ld;// push int64 constant\n",
             node->data.value.int64_val)
             cpu_stack_push_constant(&gl_space->cpu_stack, INT64_DATA_TYPE, node->data.value);
+
+            MESSAGE_PRINT("yes\n");
             return;
 
         case AST_NUM_DOUBLE:
@@ -219,12 +215,12 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
 
         case AST_STR_LIT:
             mangled_name = get_new_str_ptr(gl_space->str_storage, MAX_SYMBOL_NAME_SZ);
-            generate_mangled_name(mangled_name, MAX_SYMBOL_NAME_SZ, "double_constant_", DEFAULT_MANGLING_SUFFIX_SZ);
+            generate_mangled_name(mangled_name, MAX_SYMBOL_NAME_SZ, "string_literal_", DEFAULT_MANGLING_SUFFIX_SZ);
             add_global_variable_record_to_data_section(asm_payload, mangled_name, STRING_DATA_TYPE, node->data.value);
 
             MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
-                "lea    rbx, %s;//                          \n"
-                "push   rbx    ;// push str_lit_ptr constant\n",
+                "lea    rbx, [%s];//                          \n"
+                "push   rbx      ;// push str_lit_ptr constant\n",
                 mangled_name)
 
             cpu_stack_push_constant(&gl_space->cpu_stack, STRING_DATA_TYPE, node->data.value);
@@ -717,6 +713,7 @@ void translate_func_call(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pa
         "call   %s      \n"
         "add    rsp, %lu\n",
         function_symbol->sym_name, args_summary_nmemb);
+    cpu_stack_pop_return_addr(&gl_space->cpu_stack);
 
 
     switch (return_data_type) {

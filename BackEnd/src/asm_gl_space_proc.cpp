@@ -8,6 +8,7 @@
 #include "asm_gl_space_proc.h"
 #include "backend_structs.h"
 #include "backend_utils.h"
+#include "string_funcs.h"
 
 static char GLOBAL_BUFER[BUFSIZ] = {};
 

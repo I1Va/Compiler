@@ -222,7 +222,7 @@ doubleio_in:
 
 
 ;-------------------------------------------------
-; print double
+; print_string(str ptr, len)
 ;
 ; Stack Args: size, str_lit
 ;
@@ -230,10 +230,11 @@ doubleio_in:
 ;-------------------------------------------------
 
 strio_out:
+
                 mov rax, 0x01       ; sys_write
                 mov rdi, 0x01       ; stdout
                 mov rsi, [rsp + 8]  ; string lit
-                mov rdx, [rsp + 16] ; buffer size
+                mov rdx, [rsp + 16] ; string size
                 syscall
 
                 call make_new_line
