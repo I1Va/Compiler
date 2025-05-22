@@ -42,6 +42,7 @@ void main_config_get(main_config_t *main_config, const int argc, const char *arg
     {
         {"-i", "--input", "%s",  &main_config->input_file},
         {"-o", "--output", "%s", &main_config->output_file},
+        {"-s", "--std_lib", "%s", &main_config->std_lib_dir},
     };
 
     size_t n_options = sizeof(options) / sizeof(opt_data);

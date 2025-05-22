@@ -1,0 +1,15 @@
+BufCapacity equ 64
+
+WriteBuffer:   times BufCapacity db 0
+
+ReadBuffer:     times BufCapacity db 0
+ReadBufferLen:  dq 0
+ReadBufferPos:  dq 0
+HexTable:       db "0123456789abcdef"
+double_1e6:     dq 0x412e848000000000
+
+EnterDoubleStr:     db "Enter double: "
+EnterDoubleStrLen   equ $ - EnterDoubleStr
+
+InputError:         db "Wrong input. Exiting", 0x0a
+InputErrorLen       equ $ - InputError

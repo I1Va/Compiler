@@ -45,8 +45,9 @@ void get_options(const int argc, const char* argv[], opt_data opts[], const size
 // MODES/CONFIG ZONE
 
 struct main_config_t {
-    char input_file[MAX_CONFIG_NAME_SIZE];
+    char input_file [MAX_CONFIG_NAME_SIZE];
     char output_file[MAX_CONFIG_NAME_SIZE];
+    char std_lib_dir[MAX_CONFIG_NAME_SIZE];
 };
 
 void main_config_ctor(main_config_t *conf);

@@ -121,8 +121,8 @@ struct symbol_t {
 const symbol_t POISON_SYMBOL = {NULL, NONE_TYPE_SYMBOL, NONE_BINDING, UNDEF_SECTION, -1, POISON_FUNC_SYM_INFO, POISON_VAR_SYM_INFO};
 const size_t MAX_SYMBOL_NAME_SZ = 64;
 const size_t SYMBOL_TABLE_MAX_SZ = 128;
-const size_t MAX_TEXT_SECTION_SZ = 1ul << 13;
-const size_t MAX_DATA_SECTION_SZ = 1ul << 13;
+const size_t MAX_TEXT_SECTION_SZ = 1ul << 15;
+const size_t MAX_DATA_SECTION_SZ = 1ul << 15;
 
 struct symbol_table_t {
     size_t table_sz = 0;

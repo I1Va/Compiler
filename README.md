@@ -3,10 +3,11 @@
 ## 0. Cборка
 cmake -S ./BackEnd -B ./BackEnd/build && cmake --build ./BackEnd/build
 cmake -S ./FrontEnd -B ./FrontEnd/build && cmake --build ./FrontEnd/build
-./run.sh -S ./code.mcc
+./run.sh --AST --graphics ./testing_space/code.mcc
 nasm -f elf64 ./code.asm -o code.o
 gcc -no-pie code.o -o code.out
 ./code.out
+
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON

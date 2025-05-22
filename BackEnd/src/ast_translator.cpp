@@ -61,25 +61,39 @@ void dump_asm_payload_to_file(const char path[], asm_payload_t *asm_payload) {
     }
 
     fprintf(file,
-        "section .text\n%s\n"
-        "section .data\n%s\n",
-        asm_payload->text_section,
-        asm_payload->data_section
+        "section .data\n%s\n"
+        "section .text\n%s\n",
+        asm_payload->data_section,
+        asm_payload->text_section
     );
 }
 
-void prepare_standart_lib(asm_payload_t *lib_payload) {
+bool prepare_standart_lib(asm_payload_t *lib_payload, const char std_lib_dir_path[]) {
     assert(lib_payload);
+    assert(std_lib_dir_path);
 
-    // MAKE_RECORD_IN_TEXT_SECTION(lib_payload, "lib_payload");
+    char data_section_path[BUFSIZ] = {};
+    snprintf(data_section_path, BUFSIZ, "%s/.data", std_lib_dir_path);
+
+    char text_section_path[BUFSIZ] = {};
+    snprintf(text_section_path, BUFSIZ, "%s/.text", std_lib_dir_path);
+
+    if (!load_std_lib(data_section_path, text_section_path, lib_payload)) {
+        debug("failed to load_std_lib")
+        return false;
+    }
+
+    return true;
 }
 
 void link_main_prog_with_lib(asm_payload_t *lib_payload, asm_payload_t *main_payload, asm_payload_t *outfile_payload) {
     assert(lib_payload);
     assert(main_payload);
 
-    MAKE_RECORD_IN_TEXT_SECTION(outfile_payload, "%s%s", lib_payload->text_section, main_payload->text_section);
-    MAKE_RECORD_IN_DATA_SECTION(outfile_payload, "%s",   main_payload->data_section);
+    MAKE_RECORD_IN_DATA_SECTION(outfile_payload, "%s\n", lib_payload->data_section);
+    MAKE_RECORD_IN_DATA_SECTION(outfile_payload, "%s", main_payload->data_section);
+    MAKE_RECORD_IN_TEXT_SECTION(outfile_payload, "%s\n", lib_payload->text_section);
+    MAKE_RECORD_IN_TEXT_SECTION(outfile_payload, "%s", main_payload->text_section);
 }
 
 void prepare_main_program(asm_payload_t *main_payload, ast_tree_t *tree, str_storage_t **storage) {
@@ -98,12 +112,12 @@ void prepare_main_program(asm_payload_t *main_payload, ast_tree_t *tree, str_sto
     translator_global_space_clear(&gl_space);
 }
 
-void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage, const char outfile_path[]) {
+void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage, const char outfile_path[], const char std_lib_dir[]) {
     assert(tree);
     assert(storage);
     assert(outfile_path);
 
-    asm_payload_t lib_payload       = {}; prepare_standart_lib(&lib_payload);
+    asm_payload_t lib_payload       = {}; prepare_standart_lib(&lib_payload, std_lib_dir);
     asm_payload_t main_payload      = {}; prepare_main_program(&main_payload, tree, storage);
     asm_payload_t outfile_payload   = {};
 

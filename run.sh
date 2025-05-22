@@ -71,11 +71,13 @@ short_filename="${filename%.*}"
 ast_filename="${short_filename}.ast"
 asm_filename="${short_filename}.asm"
 png_filename="${short_filename}.png"
+standart_lib_dir=standart_lib
+
 
 case "$action" in
     S)
         ./FrontEnd/build/bin/FrontEnd -i=$filename -o=$ast_filename
-        ./BackEnd/build/bin/BackEnd -i=$ast_filename -o=$asm_filename
+        ./BackEnd/build/bin/BackEnd -s=$standart_lib_dir -i=$ast_filename -o=$asm_filename
         ;;
     C)
         echo "THERE IS SHOULD BE COMPILATION IN ELF FILE"
@@ -86,7 +88,7 @@ case "$action" in
         else
             ./FrontEnd/build/bin/FrontEnd -i=$filename -o=$ast_filename
         fi
-        ./BackEnd/build/bin/BackEnd -i=$ast_filename -o=$asm_filename
+        ./BackEnd/build/bin/BackEnd -s=$standart_lib_dir -i=$ast_filename -o=$asm_filename
         ;;
     *)
         echo "Error: Invalid action" >&2

@@ -18,4 +18,8 @@ symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, c
 
 void dump_symbol_table_t(FILE *stream, symbol_table_t *symbol_table);
 
+bool get_data_from_file(const char path[], char bufer[]);
+bool load_std_lib(const char lib_data_section_path[], const char lib_text_section_path[], asm_payload_t *lib_payload);
+
+
 #endif // SECTIONS_PROCESSING_H

@@ -121,7 +121,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fsized-deallocation
         -fstack-protector
         -fstrict-overflow
-        -flto-odr-type-merging
         -fno-omit-frame-pointer
         -Wlarger-than=8192
         -Wstack-usage=8192

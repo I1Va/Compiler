@@ -3,13 +3,16 @@
 #include <cstring>
 #include <stdio.h>
 
+#include "backend_structs.h"
 #include "general.h"
 #include "string_funcs.h"
 #include "backend_utils.h"
 #include "sections_processing.h"
 
 
-static char bufer[BUFSIZ] = {};
+static char GLOBAL_BUFER[BUFSIZ] = {};
+
+
 int get_symbol_idx_in_name_table(symbol_table_t *symbol_table, const symbol_t symbol) {
     assert(symbol_table);
 
@@ -53,4 +56,48 @@ void dump_symbol_table_t(FILE *stream, symbol_table_t *symbol_table) {
         printf("symbol_table[%lu] = %s\n", i, symbol_table->data[i].sym_name);
     }
     fprintf_border(stream, '=', STR_F_BORDER_SZ, true);
+}
+
+bool get_data_from_file(const char path[], char bufer[]) {
+    assert(path);
+    assert(bufer);
+
+    int lib_file_nmemb = get_file_sz(path);
+    if (lib_file_nmemb < 0) {
+        debug("failed to get file `%s` sz", path)
+        return false;
+    }
+
+    FILE *file = fopen(path, "r");
+    if (!file) {
+        debug("failed to open %s", path);
+        return false;
+    }
+
+    fread(bufer, (size_t) lib_file_nmemb, sizeof(char), file);
+    fclose(file);
+
+    return true;
+}
+
+bool load_std_lib(const char lib_data_section_path[], const char lib_text_section_path[], asm_payload_t *lib_payload) {
+    assert(lib_text_section_path);
+    assert(lib_data_section_path);
+    assert(lib_payload);
+
+    char data_section[MAX_DATA_SECTION_SZ] = {};
+    if (!get_data_from_file(lib_data_section_path, data_section)) {
+        debug("failed to fill lib data_section")
+        return false;
+    }
+    MAKE_RECORD_IN_DATA_SECTION(lib_payload, "%s", data_section)
+
+    char text_section[MAX_TEXT_SECTION_SZ] = {};
+    if (!get_data_from_file(lib_text_section_path, text_section)) {
+        debug("failed to fill lib text_section")
+        return false;
+    }
+    MAKE_RECORD_IN_TEXT_SECTION(lib_payload, "%s", text_section)
+
+    return true;
 }
