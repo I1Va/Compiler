@@ -1,0 +1,8 @@
+void print_int(int x) {};
+
+int main() {
+
+   print_int(1212);
+
+   return 0;
+};

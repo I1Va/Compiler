@@ -1,10 +1,10 @@
-.vscode/*
-.cache/*
-build/*
-debug/*
 docs/*
 
 source/my_linker/tests/*
+
 **/CMakeFiles/*
+**/.cache/*
+**/build/*
+**/.vscode/*
 
 testing_space/*

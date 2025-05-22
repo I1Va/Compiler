@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(FrontEnd LANGUAGES C CXX)
+project(BackEnd LANGUAGES C CXX)
 
 # Output dirs
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -12,33 +12,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Submodules
 add_subdirectory(libs/string_funcs)
-add_subdirectory(libs/graphviz_funcs)
+add_subdirectory(libs/stack)
 add_subdirectory(libs/general_lib)
-add_subdirectory(libs/AST_lib)
 
-# Главная программа
-add_executable(FrontEnd
-    src/FrontEnd.cpp
-    src/lang_grammar.cpp
-    src/lang_lexer.cpp
-    src/lang_logger.cpp
-    src/front_args_proc.cpp
+add_executable(BackEnd
+    src/ast_translator.cpp
+    src/BackEnd.cpp
+    src/sections_proc.cpp
+    src/stack_frame_proc.cpp
+    src/strong_type_proc.cpp
+    src/translator_general.cpp
     main.cpp
 )
 
-target_include_directories(FrontEnd
+target_include_directories(BackEnd
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
-target_link_libraries(FrontEnd PRIVATE
-    graphviz_funcs
+target_link_libraries(BackEnd PRIVATE
     string_funcs
+    stack
     general_lib
-    AST_lib
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(FrontEnd PRIVATE
+    target_compile_options(BackEnd PRIVATE
         -fsanitize=address
         -fsanitize=alignment
         -fsanitize=bool
@@ -126,7 +124,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fPIE
         -Werror=vla
     )
-    target_link_options(FrontEnd PRIVATE
+    target_link_options(BackEnd PRIVATE
         -fsanitize=address
         -fsanitize=alignment
         -fsanitize=bool
