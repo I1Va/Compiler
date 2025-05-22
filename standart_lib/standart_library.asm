@@ -1,5 +1,18 @@
 section .text
 
+;-------------------------------------------------
+; calculate sqrt
+;
+; Destr:    rax, rbx, rdx, rdi, rsi, r8, r9, r10, r11, xmm1
+;
+; Ret:      xmm0
+;-------------------------------------------------
+sqrt:
+    movdqu xmm0, [rsp + 8]
+    sqrtsd xmm0, xmm0        ; xmm0 = sqrt(xmm0)
+    ret
+
+
 
 ;-------------------------------------------------
 ; read int

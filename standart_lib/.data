@@ -2,6 +2,8 @@ BufCapacity equ 64
 
 WriteBuffer:   times BufCapacity db 0
 
+NewLineChar:    db 0x0a
+
 ReadBuffer:     times BufCapacity db 0
 ReadBufferLen:  dq 0
 ReadBufferPos:  dq 0

@@ -1,4 +1,35 @@
 section .text
+
+;-------------------------------------------------
+; calculate sqrt
+;
+; Destr:    rax, rbx, rdx, rdi, rsi, r8, r9, r10, r11, xmm1
+;
+; Ret:      xmm0
+;-------------------------------------------------
+sqrt:
+    movdqu xmm0, [rsp + 8]
+    sqrtsd xmm0, xmm0        ; xmm0 = sqrt(xmm0)
+    ret
+
+
+;-------------------------------------------------
+; make new line
+;
+; Destr:    rax, rdi, rsi, rdx
+;
+; Ret:      rax
+;-------------------------------------------------
+
+make_new_line:
+                mov rax, 0x01           ; sys_write
+                mov rdi, 0x01           ; stdout
+                lea rsi, [NewLineChar]  ; '\n'
+                mov rdx, 1              ; len = 1
+                syscall
+
+                ret
+
 ;-------------------------------------------------
 ; read int
 ;
@@ -7,9 +38,9 @@ section .text
 ; Ret:      rax
 ;-------------------------------------------------
 intio_in:
-    call doubleio_in
-    cvttsd2si rax, xmm0
-    ret
+                call doubleio_in
+                cvttsd2si rax, xmm0
+                ret
 
 ;-------------------------------------------------
 ; print int
@@ -20,17 +51,17 @@ intio_in:
 ;-------------------------------------------------
 
 intio_out:
-    mov rbx, [rsp + 8]
-    cvtsi2sd xmm1, rbx
+                mov rbx, [rsp + 8]
+                cvtsi2sd xmm1, rbx
 
-    sub rsp, 16
-    movdqu [rsp], xmm1
+                sub rsp, 16
+                movdqu [rsp], xmm1
 
-    call doubleio_out
+                call doubleio_out
 
-    add rsp, 16
+                add rsp, 16
 
-    ret
+                ret
 
 ;-------------------------------------------------
 ; read double
@@ -204,6 +235,8 @@ strio_out:
                 mov rsi, [rsp + 8]  ; string lit
                 mov rdx, [rsp + 16] ; buffer size
                 syscall
+
+                call make_new_line
 
                 ret
 
