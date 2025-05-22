@@ -572,7 +572,7 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
                 cpu_stack_push_variable(&gl_space->cpu_stack, DOUBLE_DATA_TYPE, local_var.name, CPU_STACK_VAR_VALUE);
                 return;
 
-            case STRING_DATA_TYPE: RAISE_TR_ERROR("error: STRING_DATA_TYPE var identifier\n");
+            case STRING_DATA_TYPE:
                 get_var_type_t_descr(GLOBAL_BUFER, BUFSIZ, local_var.var_type);
                 MAKE_RECORD_IN_TEXT_SECTION(asm_payload,
                     "mov    rbx, [rbp %d]; // access to %s string literal ptr '%s'\n"

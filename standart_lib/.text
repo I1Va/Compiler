@@ -188,13 +188,35 @@ doubleio_in:
                 syscall
 ;-------------------------------------------------
 
+
+
 ;-------------------------------------------------
 ; print double
 ;
-; Args:     xmm0 - number
+; Stack Args: size, str_lit
+;
+; Destr:
+;-------------------------------------------------
+
+strio_out:
+                mov rax, 0x01       ; sys_write
+                mov rdi, 0x01       ; stdout
+                mov rsi, [rsp + 8]  ; string lit
+                mov rdx, [rsp + 16] ; buffer size
+                syscall
+
+                ret
+
+
+;-------------------------------------------------
+; print double
+;
+; Args:     push xmm on stack
 ;
 ; Destr:    rax, rbx, rcx, rdx, rdi, rsi, r11, r12, r13, xmm0, xmm1
 ;-------------------------------------------------
+
+
 doubleio_out:
 
                 lea r13, [WriteBuffer + BufCapacity - 1]         ; r13 - output str pointer
