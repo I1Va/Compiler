@@ -583,7 +583,6 @@ void translate_var_identifier(ast_tree_elem_t *node, asm_glob_space *gl_space, a
         }
     }
 
-
     assert(global_var_sym_defined);
     // WARNING. THERE IS SHOULD BE RELOCATION!!!!!! FIXME:
     if (global_var_sym_defined) {

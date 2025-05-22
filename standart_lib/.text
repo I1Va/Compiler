@@ -38,8 +38,26 @@ make_new_line:
 ; Ret:      rax
 ;-------------------------------------------------
 intio_in:
-                call doubleio_in
+                mov rax, 0x01               ; sys_write
+                mov rdi, 0x01               ; stdout
+                lea rsi, [EnterIntStr]   ; string
+                mov rdx, EnterIntStrLen  ; string len
+                syscall
+
+                call doubleio_in_raw
                 cvttsd2si rax, xmm0
+
+                ret
+
+doubleio_in:
+
+                mov rax, 0x01               ; sys_write
+                mov rdi, 0x01               ; stdout
+                lea rsi, [EnterDoubleStr]   ; string
+                mov rdx, EnterDoubleStrLen  ; string len
+                syscall
+
+                call doubleio_in_raw
                 ret
 
 ;-------------------------------------------------
@@ -70,14 +88,7 @@ intio_out:
 ;
 ; Ret:      xmm0
 ;-------------------------------------------------
-doubleio_in:
-
-                mov rax, 0x01               ; sys_write
-                mov rdi, 0x01               ; stdout
-                lea rsi, [EnterDoubleStr]   ; string
-                mov rdx, EnterDoubleStrLen  ; string len
-                syscall
-
+doubleio_in_raw:
                 mov rdi, [ReadBufferLen]
                 cmp [ReadBufferPos], rdi
                 jb .bufIsNotEmpty

@@ -13,5 +13,8 @@ double_1e6:     dq 0x412e848000000000
 EnterDoubleStr:     db "Enter double: "
 EnterDoubleStrLen   equ $ - EnterDoubleStr
 
+EnterIntStr         db "Enter int: "
+EnterIntStrLen      equ $ - EnterIntStr
+
 InputError:         db "Wrong input. Exiting", 0x0a
 InputErrorLen       equ $ - InputError
