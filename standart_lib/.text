@@ -222,7 +222,7 @@ doubleio_in:
 
 
 ;-------------------------------------------------
-; print_string(str ptr, len)
+; print_string(len, string)
 ;
 ; Stack Args: size, str_lit
 ;

@@ -42,7 +42,6 @@ symbol_t get_global_variable_sym_from_name_table(symbol_table_t *symbol_table, c
 
     for (size_t i = 0; i < symbol_table->table_sz; i++) {
         symbol_t cur_sym = symbol_table->data[i];
-
         if (strncmp(sym_name, cur_sym.sym_name, MAX_SYMBOL_NAME_SZ) == 0
             && cur_sym.sym_type == VARIABLE_SYMBOL) return cur_sym;
     }

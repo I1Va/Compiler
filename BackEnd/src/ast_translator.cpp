@@ -196,8 +196,6 @@ void translate_constant(ast_tree_elem_t *node, asm_glob_space *gl_space, asm_pay
                 "push   %ld;// push int64 constant\n",
             node->data.value.int64_val)
             cpu_stack_push_constant(&gl_space->cpu_stack, INT64_DATA_TYPE, node->data.value);
-
-            MESSAGE_PRINT("yes\n");
             return;
 
         case AST_NUM_DOUBLE:
@@ -367,7 +365,6 @@ void translate_function_definition(ast_tree_elem_t *node, asm_glob_space *gl_spa
     assert(node);
     CHECK_AST_NODE_TYPE(node, AST_FUNC_INIT);
 
-    size_t argc = 0;
 
     lexer_token_t function_return_type = (lexer_token_t) node->left->data.value.int64_val;
     CHECK_AST_NODE_TYPE(node->left, AST_TYPE);
@@ -653,11 +650,12 @@ void translate_funcs_call_args(ast_tree_elem_t *node, asm_glob_space *gl_space, 
     CHECK_NODE_TYPE(node, AST_COMMA)
 
 
+    translate_node_to_asm_code(node->right, gl_space, asm_payload);
 
     if (node->left) translate_funcs_call_args(node->left, gl_space, asm_payload);
 
 
-    translate_node_to_asm_code(node->right, gl_space, asm_payload);
+
 }
 
 
