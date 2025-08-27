@@ -69,7 +69,7 @@ void dump_asm_payload_to_file(const char path[], asm_payload_t *asm_payload) {
     );
 }
 
-bool prepare_standart_lib(asm_payload_t *lib_payload, const char std_lib_dir_path[]) {
+bool prepare_standard_lib(asm_payload_t *lib_payload, const char std_lib_dir_path[]) {
     assert(lib_payload);
     assert(std_lib_dir_path);
 
@@ -118,7 +118,7 @@ void translate_ast_to_asm_code(ast_tree_t *tree, str_storage_t **storage, const 
     assert(storage);
     assert(outfile_path);
 
-    asm_payload_t lib_payload       = {}; prepare_standart_lib(&lib_payload, std_lib_dir);
+    asm_payload_t lib_payload       = {}; prepare_standard_lib(&lib_payload, std_lib_dir);
     asm_payload_t main_payload      = {}; prepare_main_program(&main_payload, tree, storage);
     asm_payload_t outfile_payload   = {};
 
